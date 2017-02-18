@@ -19,10 +19,11 @@
 #include <fcntl.h>
 #include <errno.h>
 #include "main.h"
-#include "acp/main.h"
+
 #include "acp/app.h"
 
-
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
 
 #define LIST_GET_BY_ID \
      int i;\
@@ -50,7 +51,39 @@
         curr=curr->next;\
     }\
     return NULL;
+
+#define LIST_GET_BY(V) \
+     int i;\
+    for (i = 0; i < list->length; i++) {\
+        if (list->item[i].V == id) {\
+            return &(list->item[i]);\
+        }\
+    }\
+    return NULL;
+
+#define FORL for (i = 0; i < list->length; i++) 
+#define LIi list->item[i]
+#define Lil list->length-1
+
 #define FREE_LIST(list) free((list)->item); (list)->item=NULL; (list)->length=0;
+
+#define FUN_LIST_GET_BY(V,T) T *get##T##By_##V (int id, const T##List *list) {  LIST_GET_BY(V) }
+
+#define FUN_LIST_GET_BY_ID(T) T *get ## T ## ById(int id, const T ## List *list) {  LIST_GET_BY_ID }
+#define FUN_LIST_GET_BY_IDSTR(T) T *get ## T ## ById(char *id, const T ## List *list) {  LIST_GET_BY_IDSTR }
+#define FUN_LLIST_GET_BY_ID(T) T *get ## T ## ById(int id, const T ## List *list) {  LLIST_GET_BY_ID(T) }
+
+#define DEF_LIST(T) typedef struct {T *item; size_t length;} T##List;
+#define DEF_LLIST(T) typedef struct {T *top; T *last; size_t length;} T##List;
+
+#define FUN_LOCK(T) int lock ## T (T *item) {if (item == NULL) {return 0;} if (pthread_mutex_lock(&(item->mutex.self)) != 0) {return 0;}return 1;}
+#define FUN_TRYLOCK(T) int tryLock ## T (T  *item) {if (item == NULL) {return 0;} if (pthread_mutex_trylock(&(item->mutex.self)) != 0) {return 0;}return 1;}
+#define FUN_UNLOCK(T) int unlock ## T (T *item) {if (item == NULL) {return 0;} if (pthread_mutex_unlock(&(item->mutex.self)) != 0) {return 0;}return 1;}
+
+#define DEF_FUN_LOCK(T) extern int lock ## T (T *item);
+#define DEF_FUN_TRYLOCK(T) extern int tryLock ## T (T  *item);
+#define DEF_FUN_UNLOCK(T) extern int unlock ## T (T *item);
+
 enum {
     APP_INIT = 90,
     APP_INIT_DATA,
@@ -77,6 +110,8 @@ extern void setPriorityMax(int policy);
 extern int readHostName(char *hostname) ;
 
 extern int initPid(int *pid_file, int *pid, const char *pid_path) ;
+
+extern char * getAppState(char state);
 
 extern void freePid(int *pid_file, int *pid, const char *pid_path) ;
 

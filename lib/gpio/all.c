@@ -1,9 +1,9 @@
- void digitalWrite(int pin, int value) {
+ void pinWrite(int pin, int value) {
     int v;
     v = pin * value;
 }
 
- int digitalRead(int pin) {
+ int pinRead(int pin) {
     int regval;
     srand(pin);
     regval = rand();
@@ -27,11 +27,19 @@
     int v = pin*pin;
 }
 
+ void pinPUD(int pin, int pud) {
+ ;
+}
+ 
 int checkPin(int pin) {
     return 1;
 }
 
 int gpioSetup() {
+    return 1;
+}
+
+int gpioFree() {
     return 1;
 }
 

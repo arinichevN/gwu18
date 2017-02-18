@@ -1,20 +1,12 @@
 
 
-Device *getDeviceById(int id, DeviceList *l) {
-    int i;
-    for (i = 0; i < l->length; i++) {
-        if (id == l->device[i].id) {
-            return &(l->device[i]);
-        }
-    }
-    return NULL;
-}
+FUN_LIST_GET_BY_ID(Device)
 
 int deviceIdExists(int id) {
     int i, found;
     found = 0;
     for (i = 0; i < device_list.length; i++) {
-        if (id == device_list.device[i].id) {
+        if (id == device_list.item[i].id) {
             found = 1;
             break;
         }
@@ -65,13 +57,13 @@ void setResolution(Device *item, int resolution) {
         return;
     }
     for (i = 0; i < RETRY_NUM; i++) {
-#ifdef P_A20
+#ifndef PLATFORM_ANY
         if (ds18b20_set_resolution(item->pin, item->addr, res)) {
             item->resolution_set_state = 1;
             return;
         }
 #endif
-#ifdef P_ALL
+#ifdef PLATFORM_ANY
         item->resolution_set_state = 1;
         return;
 #endif
@@ -89,13 +81,13 @@ void getResolution(Device *item) {
     int i;
     item->resolution_state = 0;
     for (i = 0; i < RETRY_NUM; i++) {
-#ifdef P_A20
+#ifndef PLATFORM_ANY
         if (ds18b20_get_resolution(item->pin, item->addr, &item->resolution)) {
             item->resolution_state = 1;
             return;
         }
 #endif
-#ifdef P_ALL
+#ifdef PLATFORM_ANY
         item->resolution_state = 1;
         return;
 #endif
@@ -106,31 +98,19 @@ void getTemperature(Device *item) {
     int i;
     item->value_state = 0;
     for (i = 0; i < RETRY_NUM; i++) {
-#ifdef P_A20
+#ifndef PLATFORM_ANY
         if (ds18b20_get_temp(item->pin, item->addr, &item->value)) {
-            clock_gettime(LIB_CLOCK, &item->tm);
+            item->tm=getCurrentTime();
             item->value_state = 1;
             return;
         }
 #endif
-#ifdef P_ALL
+#ifdef PLATFORM_ANY
         item->value = 0.0f;
-        clock_gettime(LIB_CLOCK, &item->tm);
+        item->tm=getCurrentTime();
         item->value_state = 1;
         return;
 #endif
-    }
-}
-
-void saveResolution(Device *item) {
-    if (item->resolution_set_state) {
-        PGresult *r;
-        char q[LINE_SIZE];
-        snprintf(q, sizeof q, "update %s.device set resolution=%d where app_class='%s' and id=%d", APP_NAME, item->resolution, app_class, item->id);
-        if ((r = dbGetDataC(*db_connp_data, q, "backupDelProgById: delete from backup: ")) != NULL) {
-            PQclear(r);
-        }
-        item->resolution_set_state = 0;
     }
 }
 

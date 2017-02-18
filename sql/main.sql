@@ -11,8 +11,6 @@ CREATE TABLE gwu18.config
   pid_path character varying (32) NOT NULL,
   udp_buf_size character varying (32) NOT NULL, --size of buffer used in sendto() and recvfrom() functions (508 is safe, if more then packet may be lost while transferring over network). Enlarge it if your rio module returns SRV_BUF_OVERFLOW
   db_data character varying (32) NOT NULL,
-  db_log character varying (32) NOT NULL,
-  cycle_duration_us character varying(32) NOT NULL,--the more cycle duration is, the less your hardware is loaded
   CONSTRAINT config_pkey PRIMARY KEY (app_class)
 )
 WITH (

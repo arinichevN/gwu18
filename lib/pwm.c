@@ -1,12 +1,15 @@
 /*
  *  pulse-width modulation 
-*/
+ */
 #include "pwm.h"
 
 int pwmctl(PWM *d, int duty_cycle) {
     struct timespec now, dif, time_req;
     int time_req_sec;
     if (d->period.tv_sec < 0) {
+#ifdef MODE_DEBUG
+        printf("pwmctl: old period=%ld sec, and now period=0", d->period.tv_sec);
+#endif
         d->period.tv_sec = 0;
         d->period.tv_nsec = 0;
         return (PWM_IDLE);
@@ -19,8 +22,8 @@ int pwmctl(PWM *d, int duty_cycle) {
     } else if (duty_cycle > PWM_RSL) {
         duty_cycle = PWM_RSL;
     }
-    
-    clock_gettime(CLOCK_REALTIME_COARSE, &now);
+
+    now = getCurrentTime();
     if (!d->initialized) {
         d->state = PWM_BUSY;
         d->start_time = now;

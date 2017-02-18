@@ -15,7 +15,7 @@ int acp_initBuf(char *buf, size_t buf_size) {
     return 1;
 }
 
-void acp_parsePackI1(const char *buf, I1List *list, size_t list_max_size) {
+void acp_parsePackI1(char *buf, I1List *list, size_t list_max_size) {
     char *buff = buf;
     list->length = 0;
     if (strlen(buff) < ACP_RESP_BUF_SIZE_MIN) {
@@ -33,7 +33,7 @@ void acp_parsePackI1(const char *buf, I1List *list, size_t list_max_size) {
     }
 }
 
-void acp_parsePackI2(const char *buf, I2List *list, size_t list_max_size) {
+void acp_parsePackI2(char *buf, I2List *list, size_t list_max_size) {
     char *buff = buf;
     list->length = 0;
     if (strlen(buff) < ACP_RESP_BUF_SIZE_MIN) {
@@ -52,7 +52,7 @@ void acp_parsePackI2(const char *buf, I2List *list, size_t list_max_size) {
     }
 }
 
-void acp_parsePackI3(const char *buf, I3List *list, size_t list_max_size) {
+void acp_parsePackI3(char *buf, I3List *list, size_t list_max_size) {
     char *buff = buf;
     list->length = 0;
     if (strlen(buff) < ACP_RESP_BUF_SIZE_MIN) {
@@ -72,7 +72,7 @@ void acp_parsePackI3(const char *buf, I3List *list, size_t list_max_size) {
     }
 }
 
-void acp_parsePackF1(const char *buf, F1List *list, size_t list_max_size) {
+void acp_parsePackF1(char *buf, F1List *list, size_t list_max_size) {
     char *buff = buf;
     list->length = 0;
     if (strlen(buff) < ACP_RESP_BUF_SIZE_MIN) {
@@ -90,7 +90,7 @@ void acp_parsePackF1(const char *buf, F1List *list, size_t list_max_size) {
     }
 }
 
-void acp_parsePackI1F1(const char *buf, I1F1List *list, size_t list_max_size) {
+void acp_parsePackI1F1(char *buf, I1F1List *list, size_t list_max_size) {
     char *buff = buf;
     list->length = 0;
     if (strlen(buff) < ACP_RESP_BUF_SIZE_MIN) {
@@ -110,7 +110,7 @@ void acp_parsePackI1F1(const char *buf, I1F1List *list, size_t list_max_size) {
     }
 }
 
-void acp_parsePackS1(const char *buf, S1List *list, size_t list_max_size) {
+void acp_parsePackS1(char *buf, S1List *list, size_t list_max_size) {
     char *buff = buf;
     list->length = 0;
     if (strlen(buff) < ACP_RESP_BUF_SIZE_MIN) {
@@ -127,13 +127,13 @@ void acp_parsePackS1(const char *buf, S1List *list, size_t list_max_size) {
         if (sscanf(buff, format, p0) != 1) {
             break;
         }
-        strcpy(&list->item[list->length*NAME_SIZE], p0);
+        strcpy(&list->item[list->length * NAME_SIZE], p0);
         list->length++;
         strnline(&buff);
     }
 }
 
-void acp_parsePackI1S1(const char *buf, I1S1List *list, size_t list_max_size) {
+void acp_parsePackI1S1(char *buf, I1S1List *list, size_t list_max_size) {
     char *buff = buf;
     list->length = 0;
     if (strlen(buff) < ACP_RESP_BUF_SIZE_MIN) {
@@ -146,7 +146,8 @@ void acp_parsePackI1S1(const char *buf, I1S1List *list, size_t list_max_size) {
         return;
     }
     while (list->length < list_max_size) {
-        int p0; char p1[NAME_SIZE];
+        int p0;
+        char p1[NAME_SIZE];
         if (sscanf(buff, format, &p0, p1) != 2) {
             break;
         }
@@ -157,7 +158,7 @@ void acp_parsePackI1S1(const char *buf, I1S1List *list, size_t list_max_size) {
     }
 }
 
-void acp_parsePackFTS(const char *buf, FTSList *list, size_t list_max_size) {
+void acp_parsePackFTS(char *buf, FTSList *list, size_t list_max_size) {
     char *buff = buf;
     list->length = 0;
     if (strlen(buff) < ACP_RESP_BUF_SIZE_MIN) {
@@ -172,10 +173,35 @@ void acp_parsePackFTS(const char *buf, FTSList *list, size_t list_max_size) {
             break;
         }
         list->item[list->length].id = id;
-        list->item[list->length].temp = temp;
+        list->item[list->length].value = temp;
         list->item[list->length].tm.tv_sec = tm.tv_sec;
         list->item[list->length].tm.tv_nsec = tm.tv_nsec;
         list->item[list->length].state = state;
+        list->length++;
+        strnline(&buff);
+    }
+}
+
+void acp_parsePackS2(char *buf, S2List *list, size_t list_max_size) {
+    char *buff = buf;
+    list->length = 0;
+    if (strlen(buff) < ACP_RESP_BUF_SIZE_MIN) {
+        return;
+    }
+    strnline(&buff);
+    char format[LINE_SIZE];
+    int n = sprintf(format, "%%%lus_%%%lus", LINE_SIZE, LINE_SIZE);
+    if (n <= 0) {
+        return;
+    }
+    while (list->length < list_max_size) {
+        char p0[NAME_SIZE];
+        char p1[NAME_SIZE];
+        if (sscanf(buff, format, p0, p1) != 1) {
+            break;
+        }
+        strcpy(list->item[list->length].p0, p0);
+        strcpy(list->item[list->length].p1, p1);
         list->length++;
         strnline(&buff);
     }
@@ -363,7 +389,7 @@ void acp_sendFooter(int8_t crc, Peer *peer) {
     }
 }
 
-int acp_sendBufPack(char *buf, char qnf, const char *cmd_str, size_t buf_size, const Peer *peer) {
+int acp_sendBufPack(char *buf, char qnf, char *cmd_str, size_t buf_size, const Peer *peer) {
     if (!acp_bufAddHeader(buf, qnf, cmd_str, buf_size)) {
 #ifdef MODE_DEBUG
         fputs("acp_sendBufPack: acp_bufAddHeader() failed\n", stderr);
@@ -403,6 +429,22 @@ int acp_sendStrPack(char qnf, char *cmd, size_t buf_size, const Peer *peer) {
     return 1;
 }
 
+int acp_bufCatDate(struct tm *date, char *buf, size_t buf_size) {
+    char q[LINE_SIZE];
+    snprintf(q, sizeof q, "%d_%d_%d_%d_%d_%d\n",
+            date->tm_year,
+            date->tm_mon,
+            date->tm_mday,
+            date->tm_hour,
+            date->tm_min,
+            date->tm_sec
+            );
+    if (bufCat(buf, q, buf_size) == NULL) {
+        return 0;
+    }
+    return 1;
+}
+
 int acp_recvOK(Peer *peer, size_t buf_size) {
     char buf[buf_size];
     if (recvfrom(*(peer->fd), buf, sizeof buf, 0, NULL, NULL) < 0) {
@@ -425,6 +467,40 @@ int acp_recvOK(Peer *peer, size_t buf_size) {
         return 0;
     }
     return 1;
+}
+
+char acp_recvPing(Peer *peer, size_t buf_size) {
+    char buf[buf_size];
+    if (recvfrom(*(peer->fd), buf, sizeof buf, 0, NULL, NULL) < 0) {
+#ifdef MODE_DEBUG
+        perror("acp_recvPing: recvfrom() error");
+#endif
+        return '\0';
+    }
+    if (!crc_check(buf, sizeof buf)) {
+#ifdef MODE_DEBUG
+        fputs("acp_recvPing: crc_check() failed\n", stderr);
+#endif
+        return '\0';
+    }
+    return buf[1];
+}
+
+char acp_recvInt(Peer *peer, size_t buf_size) {
+    char buf[buf_size];
+    if (recvfrom(*(peer->fd), buf, sizeof buf, 0, NULL, NULL) < 0) {
+#ifdef MODE_DEBUG
+        perror("acp_recvPing: recvfrom() error");
+#endif
+        return '\0';
+    }
+    if (!crc_check(buf, sizeof buf)) {
+#ifdef MODE_DEBUG
+        fputs("acp_recvPing: crc_check() failed\n", stderr);
+#endif
+        return '\0';
+    }
+    return buf[1];
 }
 
 int acp_recvFTS(FTSList *list, char qnf, char *cmd, size_t buf_size, size_t list_max_size, int fd) {
@@ -461,6 +537,430 @@ int acp_recvFTS(FTSList *list, char qnf, char *cmd, size_t buf_size, size_t list
     }
     acp_parsePackFTS(buf, list, list_max_size);
     return 1;
+}
+
+int acp_recvI2(I2List *list, char qnf, char *cmd, size_t buf_size, size_t list_max_size, int fd) {
+    char buf[buf_size];
+    if (recvfrom(fd, buf, sizeof buf, 0, NULL, NULL) < 0) {
+#ifdef MODE_DEBUG
+        perror("acp_recvFTS: recvfrom() error");
+#endif
+        return 0;
+    }
+    if (strlen(buf) < ACP_RESP_BUF_SIZE_MIN) {
+#ifdef MODE_DEBUG
+        fputs("acp_recvFTS: not enough data\n", stderr);
+#endif
+        return 0;
+    }
+    if (buf[0] != qnf) {
+#ifdef MODE_DEBUG
+        fputs("acp_recvFTS: bad quantifier\n", stderr);
+#endif
+        return 0;
+    }
+    if (strncmp(&buf[1], cmd, 1) != 0) {
+#ifdef MODE_DEBUG
+        fputs("acp_recvFTS: bad command\n", stderr);
+#endif
+        return 0;
+    }
+    if (!crc_check(buf, sizeof buf)) {
+#ifdef MODE_DEBUG
+        fputs("acp_recvFTS: crc_check() failed\n", stderr);
+#endif
+        return 0;
+    }
+    acp_parsePackI2(buf, list, list_max_size);
+    return 1;
+}
+
+FUN_LOCK(SensorInt)
+
+FUN_LOCK(SensorFTS)
+
+FUN_LOCK(Peer)
+
+FUN_LOCK(EM)
+
+FUN_UNLOCK(SensorInt)
+
+FUN_UNLOCK(SensorFTS)
+
+FUN_UNLOCK(Peer)
+
+FUN_UNLOCK(EM)
+
+int acp_setEMOutput(EM *em, int output, size_t udp_buf_size) {
+    if (lockEM(em)) {
+        if (lockPeer(em->source)) {
+            if (output == ((int) em->last_output)) {
+                unlockPeer(em->source);
+                unlockEM(em);
+                return 0;
+            }
+            I2 di[1];
+            di[0].p0 = em->remote_id;
+            di[0].p1 = output;
+            I2List data = {di, 1};
+            if (!acp_sendBufArrPackI2List(ACP_CMD_SET_INT, udp_buf_size, &data, em->source)) {
+#ifdef MODE_DEBUG
+                fprintf(stderr, "ERROR: acp_setEMOutput: failed to send request where em.id = %d\n", em->id);
+#endif
+                unlockPeer(em->source);
+                unlockEM(em);
+                return 0;
+            }
+            em->last_output = (float) output;
+            unlockPeer(em->source);
+            unlockEM(em);
+            return 1;
+        }
+    }
+}
+
+int acp_setEMDutyCycle(EM *em, float output, size_t udp_buf_size) {
+    if (lockEM(em)) {
+        if (lockPeer(em->source)) {
+            if (output == em->last_output) {
+                unlockPeer(em->source);
+                unlockEM(em);
+                return 0;
+            }
+            I2 di[1];
+            di[0].p0 = em->remote_id;
+            di[0].p1 = (int) output;
+            I2List data = {di, 1};
+            if (!acp_sendBufArrPackI2List(ACP_CMD_SET_DUTY_CYCLE_PWM, udp_buf_size, &data, em->source)) {
+#ifdef MODE_DEBUG
+                fprintf(stderr, "ERROR: acp_setEMDutyCycle: failed to send request where em.id = %d\n", em->id);
+#endif
+                unlockPeer(em->source);
+                unlockEM(em);
+                return 0;
+            }
+            em->last_output = output;
+            unlockPeer(em->source);
+            unlockEM(em);
+            return 1;
+        }
+    }
+}
+
+int acp_setEMOutputR(EM *em, int output, size_t udp_buf_size) {
+    if (lockEM(em)) {
+        if (lockPeer(em->source)) {
+            I2 di[1];
+            di[0].p0 = em->remote_id;
+            di[0].p1 = output;
+            I2List data = {di, 1};
+            if (!acp_sendBufArrPackI2List(ACP_CMD_SET_INT, udp_buf_size, &data, em->source)) {
+#ifdef MODE_DEBUG
+                fprintf(stderr, "ERROR: acp_setEMOutput: failed to send request where em.id = %d\n", em->id);
+#endif
+                unlockPeer(em->source);
+                unlockEM(em);
+                return 0;
+            }
+            em->last_output = (float) output;
+            unlockPeer(em->source);
+            unlockEM(em);
+            return 1;
+        }
+    }
+}
+
+int acp_setEMDutyCycleR(EM *em, float output, size_t udp_buf_size) {
+    if (lockEM(em)) {
+        if (lockPeer(em->source)) {
+            I2 di[1];
+            di[0].p0 = em->remote_id;
+            di[0].p1 = (int) output;
+            I2List data = {di, 1};
+            if (!acp_sendBufArrPackI2List(ACP_CMD_SET_DUTY_CYCLE_PWM, udp_buf_size, &data, em->source)) {
+#ifdef MODE_DEBUG
+                fprintf(stderr, "ERROR: acp_setEMDutyCycle: failed to send request where em.id = %d\n", em->id);
+#endif
+                unlockPeer(em->source);
+                unlockEM(em);
+                return 0;
+            }
+            em->last_output = output;
+            unlockPeer(em->source);
+            unlockEM(em);
+            return 1;
+        }
+    }
+}
+
+int acp_readSensorInt(SensorInt *s, size_t udp_buf_size) {
+    if (lockSensorInt(s)) {
+        if (lockPeer(s->source)) {
+            struct timespec now = getCurrentTime();
+/*
+            if (!timeHasPassed(s->interval_min, s->last_read_time, now)) {
+                unlockPeer(s->source);
+                unlockSensorInt(s);
+                return s->last_return;
+            }
+*/
+
+            s->source->active = 0;
+            s->source->time1 = now;
+            s->last_read_time = now;
+            s->last_return = 0;
+
+            int di[1];
+            di[0] = s->remote_id;
+            I1List data = {di, 1};
+            if (!acp_sendBufArrPackI1List(ACP_CMD_GET_INT, udp_buf_size, &data, s->source)) {
+#ifdef MODE_DEBUG
+                fprintf(stderr, "ERROR: acp_readSensorInt: acp_sendBufArrPackI1List failed where sensor.id = %d\n", s->id);
+#endif
+                unlockPeer(s->source);
+                unlockSensorInt(s);
+                return 0;
+            }
+
+            //waiting for response...
+            I2 td[1];
+            I2List tl = {td, 0};
+            if (!acp_recvI2(&tl, ACP_QUANTIFIER_SPECIFIC, ACP_RESP_REQUEST_SUCCEEDED, udp_buf_size, 1, *(s->source->fd))) {
+#ifdef MODE_DEBUG
+                fprintf(stderr, "ERROR: acp_readSensorInt: acp_recvI2() error where sensor.id = %d\n", s->id);
+#endif
+                unlockPeer(s->source);
+                unlockSensorInt(s);
+                return 0;
+            }
+            if (tl.item[0].p0 != s->remote_id) {
+#ifdef MODE_DEBUG
+                fprintf(stderr, "ERROR: acp_readSensorInt: response: id is not requested one where sensor.id = %d\n", s->id);
+#endif
+                s->source->active = 1;
+                unlockPeer(s->source);
+                unlockSensorInt(s);
+                return 0;
+            }
+            s->source->active = 1;
+            s->value = tl.item[0].p1;
+            s->last_return = 1;
+            unlockPeer(s->source);
+            unlockSensorInt(s);
+            return 1;
+        }
+        unlockSensorInt(s);
+    }
+    return 0;
+}
+
+int acp_readSensorFTS(SensorFTS *s, size_t udp_buf_size) {
+    if (lockSensorFTS(s)) {
+        if (lockPeer(s->source)) {
+            struct timespec now = getCurrentTime();
+/*
+            if (!timeHasPassed(s->interval_min, s->last_read_time, now)) {
+                unlockPeer(s->source);
+                unlockSensorFTS(s);
+                return s->last_return;
+            }
+*/
+
+            s->source->active = 0;
+            s->source->time1 = now;
+            s->last_read_time = now;
+            s->last_return = 0;
+            s->value.state = 0;
+
+            int di[1];
+            di[0] = s->remote_id;
+            I1List data = {di, 1};
+            if (!acp_sendBufArrPackI1List(ACP_CMD_GET_FTS, udp_buf_size, &data, s->source)) {
+#ifdef MODE_DEBUG
+                fprintf(stderr, "ERROR: sensorRead: acp_sendBufArrPackI1List failed where sensor.id = %d\n", s->id);
+#endif
+                unlockPeer(s->source);
+                unlockSensorFTS(s);
+                return 0;
+            }
+
+            //waiting for response...
+            FTS td[1];
+            FTSList tl = {td, 0};
+            if (!acp_recvFTS(&tl, ACP_QUANTIFIER_SPECIFIC, ACP_RESP_REQUEST_SUCCEEDED, udp_buf_size, 1, *(s->source->fd))) {
+#ifdef MODE_DEBUG
+                fprintf(stderr, "ERROR: acp_readSensorFTS: acp_recvFTS() error where sensor.id = %d\n", s->id);
+#endif
+                unlockPeer(s->source);
+                unlockSensorFTS(s);
+                return 0;
+            }
+            if (tl.item[0].state != 1) {
+#ifdef MODE_DEBUG
+                fprintf(stderr, "ERROR: sensorRead: response: temperature sensor state is bad where sensor.id = %d\n", s->id);
+#endif
+                s->source->active = 1;
+                unlockPeer(s->source);
+                unlockSensorFTS(s);
+                return 0;
+            }
+            if (tl.item[0].id != s->remote_id) {
+#ifdef MODE_DEBUG
+                fprintf(stderr, "ERROR: sensorRead: response: peer returned id=%d but requested one was %d\n", tl.item[0].id, s->remote_id);
+#endif
+                s->source->active = 1;
+                unlockPeer(s->source);
+                unlockSensorFTS(s);
+                return 0;
+            }
+            s->source->active = 1;
+            s->value = tl.item[0];
+            s->last_return = 1;
+            unlockPeer(s->source);
+            unlockSensorFTS(s);
+            return 1;
+        }
+        unlockSensorFTS(s);
+    }
+    return 0;
+}
+
+void acp_pingPeer(Peer *item, size_t udp_buf_size) {
+    if (lockPeer(item)) {
+        item->active = 0;
+        char cmd_str[1] = {ACP_CMD_APP_PING};
+        if (!acp_sendStrPack(ACP_QUANTIFIER_BROADCAST, cmd_str, udp_buf_size, item)) {
+#ifdef MODE_DEBUG
+            fputs("WARNING: acp_pingPeer: acp_sendStrPack failed\n", stderr);
+#endif
+            item->time1 = getCurrentTime();
+            unlockPeer(item);
+            return;
+        }
+        //waiting for response...
+        char resp[2] = {'\0', '\0'};
+        resp[0] = acp_recvPing(item, udp_buf_size);
+        if (strncmp(resp, ACP_RESP_APP_BUSY, 1) != 0) {
+#ifdef MODE_DEBUG
+            fputs("WARNING: acp_pingPeer: acp_recvPing() peer is not busy\n", stderr);
+#endif
+            item->time1 = getCurrentTime();
+            unlockPeer(item);
+            return;
+        }
+        item->active = 1;
+        item->time1 = getCurrentTime();
+        unlockPeer(item);
+    }
+}
+
+void acp_pingPeerList(PeerList *list, struct timespec interval, struct timespec now, size_t udp_buf_size) {
+    size_t i;
+    FORL{
+        if (timeHasPassed(interval, LIi.time1, now)) {
+            acp_pingPeer(&LIi, udp_buf_size);
+        }
+    }
+}
+
+int acp_sendCmdGetInt(Peer *item, char* cmd, int *output, size_t udp_buf_size) {
+    if (lockPeer(item)) {
+        item->active = 0;
+        if (!acp_sendStrPack(ACP_QUANTIFIER_BROADCAST, cmd, udp_buf_size, item)) {
+#ifdef MODE_DEBUG
+            fputs("WARNING: acp_sendCmdGetInt: acp_sendStrPack failed\n", stderr);
+#endif
+            item->time1 = getCurrentTime();
+            unlockPeer(item);
+            return 0;
+        }
+        //waiting for response...
+        char buf[udp_buf_size];
+        if (recvfrom(*(item->fd), buf, sizeof buf, 0, NULL, NULL) < 0) {
+#ifdef MODE_DEBUG
+            perror("acp_sendCmdGetInt: recvfrom() error");
+#endif
+            item->time1 = getCurrentTime();
+            unlockPeer(item);
+            return 0;
+        }
+        item->active = 1;
+        item->time1 = getCurrentTime();
+        unlockPeer(item);
+
+        if (!crc_check(buf, sizeof buf)) {
+#ifdef MODE_DEBUG
+            fputs("acp_sendCmdGetInt: crc_check() failed\n", stderr);
+#endif
+            return 0;
+        }
+        char *buff = buf;
+        if (strlen(buff) < ACP_RESP_BUF_SIZE_MIN) {
+#ifdef MODE_DEBUG
+            fputs("acp_sendCmdGetInt: ERROR: bad buff length\n", stderr);
+#endif
+            return 0;
+        }
+        strnline(&buff);
+        int p0;
+        if (sscanf(buff, "%d", &p0) != 1) {
+#ifdef MODE_DEBUG
+            fputs("acp_sendCmdGetInt: ERROR: failed to scan\n", stderr);
+#endif
+            return 0;
+        }
+        *output = p0;
+        return 1;
+    }
+#ifdef MODE_DEBUG
+    fputs("acp_sendCmdGetInt: ERROR: lock failed\n", stderr);
+#endif
+    return 0;
+}
+
+void acp_waitUnlock(Peer *item, char *cmd_unlock,char *cmd_check, unsigned int interval_us, size_t udp_buf_size) {
+    char state = 1;
+    while (1) {
+        switch (state) {
+            case 1:
+#ifdef MODE_DEBUG
+                puts("acp_waitUnlock: sending ping request to locker...");
+#endif
+                acp_pingPeer(item, udp_buf_size);
+                if (item->active) {
+                    state = 2;
+                }
+                break;
+            case 2:
+#ifdef MODE_DEBUG
+                puts("acp_waitUnlock: sending unlock request to locker...");
+#endif
+                if (acp_sendStrPack(ACP_QUANTIFIER_BROADCAST, cmd_unlock, udp_buf_size, item)) {
+                    state = 3;
+                }
+                break;
+            case 3:
+            {
+#ifdef MODE_DEBUG
+                puts("acp_waitUnlock: checking locker to be unlocked...");
+#endif
+                int locked=1;
+                if (acp_sendCmdGetInt(item, cmd_check, &locked, udp_buf_size)) {
+                    if (!locked) {
+                        state = 4;
+                    }
+                }
+                break;
+            }
+            case 4:
+#ifdef MODE_DEBUG
+                puts("acp_waitUnlock: done!");
+#endif
+                return;
+                break;
+        }
+        delayUsIdle(interval_us);
+    }
 }
 
 void freePeer(PeerList *list) {
