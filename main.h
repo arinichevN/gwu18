@@ -2,10 +2,6 @@
 #ifndef GWU18_H
 #define GWU18_H
 
-#ifndef FILE_INI
-#include "lib/db.h"
-#include "lib/config.h"
-#endif
 #include "lib/app.h"
 
 #ifndef PLATFORM_ANY
@@ -28,10 +24,10 @@
 #define ID_BROADCAST 0xff
 #define RETRY_NUM 5
 
-#ifndef MODE_DEBUG
+#ifdef MODE_FULL
 #define CONF_DIR "/etc/controller/" APP_NAME_STR "/"
 #endif
-#ifdef MODE_DEBUG
+#ifndef MODE_FULL
 #define CONF_DIR "./"
 #endif
 

@@ -114,16 +114,14 @@ void getTemperature(Device *item) {
     }
 }
 
-int sendStrPack(char qnf, const char *cmd) {
-    extern size_t udp_buf_size;
+int sendStrPack(char qnf, char *cmd) {
     extern Peer peer_client;
-    return acp_sendStrPack(qnf, cmd, udp_buf_size, &peer_client);
+    return acp_sendStrPack(qnf, cmd,  &peer_client);
 }
 
-int sendBufPack(char *buf, char qnf, const char *cmd_str) {
-    extern size_t udp_buf_size;
+int sendBufPack(char *buf, char qnf, char *cmd_str) {
     extern Peer peer_client;
-    return acp_sendBufPack(buf, qnf, cmd_str, udp_buf_size, &peer_client);
+    return acp_sendBufPack(buf, qnf, cmd_str,  &peer_client);
 }
 
 void sendStr(const char *s, uint8_t *crc) {

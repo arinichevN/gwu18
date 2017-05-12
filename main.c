@@ -9,30 +9,21 @@ char pid_path[LINE_SIZE];
 int app_state = APP_INIT;
 int pid_file = -1;
 int proc_id = -1;
-int udp_port = -1;
-int udp_fd = -1; //udp socket file descriptor
-size_t udp_buf_size = 0;
-Peer peer_client = {.fd = &udp_fd, .addr_size = sizeof peer_client.addr};
+int sock_port = -1;
+int sock_fd = -1; //socket file descriptor
+size_t sock_buf_size = 0;
+Peer peer_client = {.fd = &sock_fd, .addr_size = sizeof peer_client.addr};
 
 char db_conninfo_settings[LINE_SIZE];
 char db_conninfo_data[LINE_SIZE];
-#ifndef FILE_INI
-PGconn *db_conn_settings = NULL;
-PGconn *db_conn_data = NULL;
-#endif
 DeviceList device_list = {NULL, 0};
 
 I1List i1l = {NULL, 0};
 
 #include "util.c"
 #include "print.c"
-#ifdef FILE_INI
-#pragma message("MESSAGE: data from file")
 #include "init_f.c"
-#else
-#pragma message("MESSAGE: data from DBMS")
-#include "init_d.c"
-#endif
+
 
 #ifdef PLATFORM_ANY
 #pragma message("MESSAGE: building for all platforms")
@@ -73,23 +64,24 @@ int checkDevice(DeviceList *dl) {
 }
 
 void serverRun(int *state, int init_state) {
-    char buf_in[udp_buf_size];
-    char buf_out[udp_buf_size];
+    char buf_in[sock_buf_size];
+    char buf_out[sock_buf_size];
     uint8_t crc;
     size_t i, j;
     char q[LINE_SIZE];
     crc = 0;
     memset(buf_in, 0, sizeof buf_in);
     acp_initBuf(buf_out, sizeof buf_out);
-    if (recvfrom(udp_fd, buf_in, sizeof buf_in, 0, (struct sockaddr*) (&(peer_client.addr)), &(peer_client.addr_size)) < 0) {
+    if (recvfrom(sock_fd, (void *) buf_in, sizeof buf_in, 0, (struct sockaddr*) (&(peer_client.addr)), &(peer_client.addr_size)) < 0) {
 #ifdef MODE_DEBUG
         perror("serverRun: recvfrom() error");
 #endif
+        return;
     }
 #ifdef MODE_DEBUG
-    dumpBuf(buf_in, sizeof buf_in);
+    acp_dumpBuf(buf_in, sizeof buf_in);
 #endif    
-    if (!crc_check(buf_in, sizeof buf_in)) {
+    if (!acp_crc_check(buf_in, sizeof buf_in)) {
 #ifdef MODE_DEBUG
         fputs("WARNING: serverRun: crc check failed\n", stderr);
 #endif
@@ -145,7 +137,7 @@ void serverRun(int *state, int init_state) {
                 case ACP_QUANTIFIER_BROADCAST:
                     break;
                 case ACP_QUANTIFIER_SPECIFIC:
-                    acp_parsePackI1(buf_in, &i1l, udp_buf_size); //id
+                    acp_parsePackI1(buf_in, &i1l, sock_buf_size); //id
                     if (i1l.length <= 0) {
                         return;
                     }
@@ -162,8 +154,8 @@ void serverRun(int *state, int init_state) {
                 case ACP_QUANTIFIER_BROADCAST:
                     for (i = 0; i < device_list.length; i++) {
                         getTemperature(&device_list.item[i]);
-                        snprintf(q, sizeof q, "%d_%f_%ld_%ld_%d\n", device_list.item[i].id, device_list.item[i].value, device_list.item[i].tm.tv_sec, device_list.item[i].tm.tv_nsec, device_list.item[i].value_state);
-                        if (bufCat(buf_out, q, udp_buf_size) == NULL) {
+                        snprintf(q, sizeof q, "%d" ACP_DELIMITER_COLUMN_STR "%f" ACP_DELIMITER_COLUMN_STR "%ld" ACP_DELIMITER_COLUMN_STR "%ld" ACP_DELIMITER_COLUMN_STR "%d" ACP_DELIMITER_ROW_STR, device_list.item[i].id, device_list.item[i].value, device_list.item[i].tm.tv_sec, device_list.item[i].tm.tv_nsec, device_list.item[i].value_state);
+                        if (bufCat(buf_out, q, sock_buf_size) == NULL) {
                             sendStrPack(ACP_QUANTIFIER_BROADCAST, ACP_RESP_BUF_OVERFLOW);
                             return;
                         }
@@ -174,8 +166,8 @@ void serverRun(int *state, int init_state) {
                         Device *device = getDeviceById(i1l.item[i], &device_list);
                         if (device != NULL) {
                             getTemperature(device);
-                            snprintf(q, sizeof q, "%d_%f_%ld_%ld_%d\n", device->id, device->value, device->tm.tv_sec, device->tm.tv_nsec, device->value_state);
-                            if (bufCat(buf_out, q, udp_buf_size) == NULL) {
+                            snprintf(q, sizeof q, "%d" ACP_DELIMITER_COLUMN_STR "%f" ACP_DELIMITER_COLUMN_STR "%ld" ACP_DELIMITER_COLUMN_STR "%ld" ACP_DELIMITER_COLUMN_STR "%d" ACP_DELIMITER_ROW_STR, device->id, device->value, device->tm.tv_sec, device->tm.tv_nsec, device->value_state);
+                            if (bufCat(buf_out, q, sock_buf_size) == NULL) {
                                 sendStrPack(ACP_QUANTIFIER_BROADCAST, ACP_RESP_BUF_OVERFLOW);
                                 return;
                             }
@@ -189,8 +181,8 @@ void serverRun(int *state, int init_state) {
                 case ACP_QUANTIFIER_BROADCAST:
                     for (i = 0; i < device_list.length; i++) {
                         getResolution(&device_list.item[i]);
-                        snprintf(q, sizeof q, "%d_%d_%d\n", device_list.item[i].id, device_list.item[i].resolution, device_list.item[i].resolution_state);
-                        if (bufCat(buf_out, q, udp_buf_size) == NULL) {
+                        snprintf(q, sizeof q, "%d" ACP_DELIMITER_COLUMN_STR "%d" ACP_DELIMITER_COLUMN_STR "%d" ACP_DELIMITER_ROW_STR, device_list.item[i].id, device_list.item[i].resolution, device_list.item[i].resolution_state);
+                        if (bufCat(buf_out, q, sock_buf_size) == NULL) {
                             sendStrPack(ACP_QUANTIFIER_BROADCAST, ACP_RESP_BUF_OVERFLOW);
                             return;
                         }
@@ -201,8 +193,8 @@ void serverRun(int *state, int init_state) {
                         Device *device = getDeviceById(i1l.item[i], &device_list);
                         if (device != NULL) {
                             getResolution(device);
-                            snprintf(q, sizeof q, "%d_%d_%d\n", device->id, device->resolution, device->resolution_state);
-                            if (bufCat(buf_out, q, udp_buf_size) == NULL) {
+                            snprintf(q, sizeof q, "%d" ACP_DELIMITER_COLUMN_STR "%d" ACP_DELIMITER_COLUMN_STR "%d" ACP_DELIMITER_ROW_STR, device->id, device->resolution, device->resolution_state);
+                            if (bufCat(buf_out, q, sock_buf_size) == NULL) {
                                 sendStrPack(ACP_QUANTIFIER_BROADCAST, ACP_RESP_BUF_OVERFLOW);
                                 return;
                             }
@@ -219,6 +211,7 @@ void serverRun(int *state, int init_state) {
         case ACP_CMD_DS18B20_GET_RESOLUTION:
             if (!sendBufPack(buf_out, ACP_QUANTIFIER_SPECIFIC, ACP_RESP_REQUEST_SUCCEEDED)) {
                 sendStrPack(ACP_QUANTIFIER_BROADCAST, ACP_RESP_BUF_OVERFLOW);
+
                 return;
             }
             return;
@@ -226,53 +219,44 @@ void serverRun(int *state, int init_state) {
 }
 
 void initApp() {
-#ifndef FILE_INI
-    if (!readConf(CONFIG_FILE_DB, db_conninfo_settings, app_class)) {
-        exit_nicely_e("initApp: failed to read configuration file\n");
-    }
-#endif
     if (!readSettings()) {
         exit_nicely_e("initApp: failed to read settings\n");
     }
+        peer_client.sock_buf_size = sock_buf_size;
     if (!initPid(&pid_file, &proc_id, pid_path)) {
         exit_nicely_e("initApp: failed to initialize pid\n");
     }
-    if (!initUDPServer(&udp_fd, udp_port)) {
-        exit_nicely_e("initApp: failed to initialize udp server\n");
+    if (!initServer(&sock_fd, sock_port)) {
+        exit_nicely_e("initApp: failed to initialize socket server\n");
     }
 #ifndef PLATFORM_ANY
     if (!gpioSetup()) {
+
         exit_nicely_e("initApp: failed to initialize GPIO\n");
     }
+#endif
+#ifdef MODE_DEBUG
+    printf("initApp: PID: %d\n", proc_id);
+    printf("initApp: sock_port: %d\n", sock_port);
+    printf("initApp: sock_buf_size: %d\n", sock_buf_size);
+    printf("initApp: pid_path: %s\n", pid_path);
+    printf("initApp: CONFIG_FILE: %s\n", CONFIG_FILE);
+    printf("initApp: DEVICE_FILE: %s\n", DEVICE_FILE);
 #endif
 }
 
 int initData() {
-#ifndef FILE_INI
-    if (!initDB(&db_conn_data, db_conninfo_data)) {
-        return 0;
-    }
-#endif
     if (!initDevice(&device_list)) {
         FREE_LIST(&device_list);
-#ifndef FILE_INI
-        freeDB(db_conn_data);
-#endif
         return 0;
     }
     if (!checkDevice(&device_list)) {
         FREE_LIST(&device_list);
-#ifndef FILE_INI
-        freeDB(db_conn_data);
-#endif
         return 0;
     }
-    i1l.item = (int *) malloc(udp_buf_size * sizeof *(i1l.item));
+    i1l.item = (int *) malloc(sock_buf_size * sizeof *(i1l.item));
     if (i1l.item == NULL) {
         FREE_LIST(&device_list);
-#ifndef FILE_INI
-        freeDB(db_conn_data);
-#endif
         return 0;
     }
 #ifndef PLATFORM_ANY
@@ -293,6 +277,7 @@ int initData() {
         setResolution(&device_list.item[i], device_list.item[i].resolution);
     }
     for (i = 0; i < device_list.length; i++) {
+
         getResolution(&device_list.item[i]);
     }
 #endif
@@ -300,32 +285,30 @@ int initData() {
 }
 
 void freeData() {
+
     FREE_LIST(&i1l);
     FREE_LIST(&device_list);
-#ifndef FILE_INI
-    freeDB(db_conn_data);
-#endif
 }
 
 void freeApp() {
+
     freeData();
 #ifndef PLATFORM_ANY
     gpioFree();
 #endif
-    freeSocketFd(&udp_fd);
-#ifndef FILE_INI
-    freeDB(db_conn_settings);
-#endif
+    freeSocketFd(&sock_fd);
     freePid(&pid_file, &proc_id, pid_path);
 }
 
 void exit_nicely() {
+
     freeApp();
     puts("\nBye...");
     exit(EXIT_SUCCESS);
 }
 
 void exit_nicely_e(char *s) {
+
     fprintf(stderr, "%s", s);
     freeApp();
     exit(EXIT_FAILURE);
