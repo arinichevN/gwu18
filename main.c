@@ -66,10 +66,7 @@ int checkDevice(DeviceList *dl) {
 void serverRun(int *state, int init_state) {
     char buf_in[sock_buf_size];
     char buf_out[sock_buf_size];
-    uint8_t crc;
-    size_t i, j;
-    char q[LINE_SIZE];
-    crc = 0;
+    size_t i;
     memset(buf_in, 0, sizeof buf_in);
     acp_initBuf(buf_out, sizeof buf_out);
     if (recvfrom(sock_fd, (void *) buf_in, sizeof buf_in, 0, (struct sockaddr*) (&(peer_client.addr)), &(peer_client.addr_size)) < 0) {
@@ -154,9 +151,7 @@ void serverRun(int *state, int init_state) {
                 case ACP_QUANTIFIER_BROADCAST:
                     for (i = 0; i < device_list.length; i++) {
                         getTemperature(&device_list.item[i]);
-                        snprintf(q, sizeof q, "%d" ACP_DELIMITER_COLUMN_STR "%f" ACP_DELIMITER_COLUMN_STR "%ld" ACP_DELIMITER_COLUMN_STR "%ld" ACP_DELIMITER_COLUMN_STR "%d" ACP_DELIMITER_ROW_STR, device_list.item[i].id, device_list.item[i].value, device_list.item[i].tm.tv_sec, device_list.item[i].tm.tv_nsec, device_list.item[i].value_state);
-                        if (bufCat(buf_out, q, sock_buf_size) == NULL) {
-                            sendStrPack(ACP_QUANTIFIER_BROADCAST, ACP_RESP_BUF_OVERFLOW);
+                        if (!catTemperature(&device_list.item[i], buf_out, sock_buf_size)) {
                             return;
                         }
                     }
@@ -166,9 +161,7 @@ void serverRun(int *state, int init_state) {
                         Device *device = getDeviceById(i1l.item[i], &device_list);
                         if (device != NULL) {
                             getTemperature(device);
-                            snprintf(q, sizeof q, "%d" ACP_DELIMITER_COLUMN_STR "%f" ACP_DELIMITER_COLUMN_STR "%ld" ACP_DELIMITER_COLUMN_STR "%ld" ACP_DELIMITER_COLUMN_STR "%d" ACP_DELIMITER_ROW_STR, device->id, device->value, device->tm.tv_sec, device->tm.tv_nsec, device->value_state);
-                            if (bufCat(buf_out, q, sock_buf_size) == NULL) {
-                                sendStrPack(ACP_QUANTIFIER_BROADCAST, ACP_RESP_BUF_OVERFLOW);
+                            if (!catTemperature(device, buf_out, sock_buf_size)) {
                                 return;
                             }
                         }
@@ -181,9 +174,7 @@ void serverRun(int *state, int init_state) {
                 case ACP_QUANTIFIER_BROADCAST:
                     for (i = 0; i < device_list.length; i++) {
                         getResolution(&device_list.item[i]);
-                        snprintf(q, sizeof q, "%d" ACP_DELIMITER_COLUMN_STR "%d" ACP_DELIMITER_COLUMN_STR "%d" ACP_DELIMITER_ROW_STR, device_list.item[i].id, device_list.item[i].resolution, device_list.item[i].resolution_state);
-                        if (bufCat(buf_out, q, sock_buf_size) == NULL) {
-                            sendStrPack(ACP_QUANTIFIER_BROADCAST, ACP_RESP_BUF_OVERFLOW);
+                        if (!catResolution(&device_list.item[i], buf_out, sock_buf_size)) {
                             return;
                         }
                     }
@@ -193,9 +184,7 @@ void serverRun(int *state, int init_state) {
                         Device *device = getDeviceById(i1l.item[i], &device_list);
                         if (device != NULL) {
                             getResolution(device);
-                            snprintf(q, sizeof q, "%d" ACP_DELIMITER_COLUMN_STR "%d" ACP_DELIMITER_COLUMN_STR "%d" ACP_DELIMITER_ROW_STR, device->id, device->resolution, device->resolution_state);
-                            if (bufCat(buf_out, q, sock_buf_size) == NULL) {
-                                sendStrPack(ACP_QUANTIFIER_BROADCAST, ACP_RESP_BUF_OVERFLOW);
+                            if (!catResolution(device, buf_out, sock_buf_size)) {
                                 return;
                             }
                         }
@@ -222,7 +211,7 @@ void initApp() {
     if (!readSettings()) {
         exit_nicely_e("initApp: failed to read settings\n");
     }
-        peer_client.sock_buf_size = sock_buf_size;
+    peer_client.sock_buf_size = sock_buf_size;
     if (!initPid(&pid_file, &proc_id, pid_path)) {
         exit_nicely_e("initApp: failed to initialize pid\n");
     }
@@ -294,7 +283,7 @@ void freeApp() {
 
     freeData();
 #ifndef PLATFORM_ANY
-    gpioFree();
+    // gpioFree();
 #endif
     freeSocketFd(&sock_fd);
     freePid(&pid_file, &proc_id, pid_path);
@@ -315,6 +304,12 @@ void exit_nicely_e(char *s) {
 }
 
 int main(int argc, char** argv) {
+    if (geteuid() != 0) {
+#ifdef MODE_DEBUG
+        fprintf(stderr, "%s: root user expected\n", APP_NAME_STR);
+#endif
+        return (EXIT_FAILURE);
+    }
 #ifndef MODE_DEBUG
     daemon(0, 0);
 #endif
