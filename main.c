@@ -4,7 +4,6 @@
 
 #include "main.h"
 
-char app_class[NAME_SIZE];
 char pid_path[LINE_SIZE];
 int app_state = APP_INIT;
 int pid_file = -1;
@@ -14,8 +13,7 @@ int sock_fd = -1; //socket file descriptor
 size_t sock_buf_size = 0;
 Peer peer_client = {.fd = &sock_fd, .addr_size = sizeof peer_client.addr};
 
-char db_conninfo_settings[LINE_SIZE];
-char db_conninfo_data[LINE_SIZE];
+int retry_count=0;
 DeviceList device_list = {NULL, 0};
 
 I1List i1l = {NULL, 0};
@@ -37,16 +35,23 @@ int checkDevice(DeviceList *dl) {
 #ifndef PLATFORM_ANY
     for (i = 0; i < dl->length; i++) {
         if (!checkPin(dl->item[i].pin)) {
-            fprintf(stderr, "checkDevice: check device table: bad pin=%d where app_class='%s' and id=%d\n", dl->item[i].pin, app_class, dl->item[i].id);
+            fprintf(stderr, "checkDevice: check device table: bad pin=%d where id=%d\n", dl->item[i].pin, dl->item[i].id);
             return 0;
         }
     }
 #endif
+    //retry_count
+    for (i = 0; i < dl->length; i++) {
+        if (dl->item[i].retry_count < 0) {
+            fprintf(stderr, "checkDevice: check device table: bad retry_count=%d where id=%d\n", dl->item[i].retry_count, dl->item[i].id);
+            return 0;
+        }
+    }
     //unique id
     for (i = 0; i < dl->length; i++) {
         for (j = i + 1; j < dl->length; j++) {
             if (dl->item[i].id == dl->item[j].id) {
-                fprintf(stderr, "checkDevice: check device table: ids should be unique, repetition found where id=%d and app_class='%s'\n", dl->item[i].id, app_class);
+                fprintf(stderr, "checkDevice: check device table: ids should be unique, repetition found where id=%d\n", dl->item[i].id);
                 return 0;
             }
         }
@@ -55,7 +60,7 @@ int checkDevice(DeviceList *dl) {
     for (i = 0; i < dl->length; i++) {
         for (j = i + 1; j < dl->length; j++) {
             if (dl->item[i].pin == dl->item[j].pin && memcmp(dl->item[i].addr, dl->item[j].addr, sizeof dl->item[i].addr) == 0) {
-                fprintf(stderr, "checkDevice: check device table: addresses on certain pin should be unique, repetition found where id=%d and id=%d and app_class='%s'\n", dl->item[i].id, dl->item[j].id, app_class);
+                fprintf(stderr, "checkDevice: check device table: addresses on certain pin should be unique, repetition found where id=%d and id=%d\n", dl->item[i].id, dl->item[j].id);
                 return 0;
             }
         }
@@ -220,7 +225,6 @@ void initApp() {
     }
 #ifndef PLATFORM_ANY
     if (!gpioSetup()) {
-
         exit_nicely_e("initApp: failed to initialize GPIO\n");
     }
 #endif
@@ -229,13 +233,14 @@ void initApp() {
     printf("initApp: sock_port: %d\n", sock_port);
     printf("initApp: sock_buf_size: %d\n", sock_buf_size);
     printf("initApp: pid_path: %s\n", pid_path);
+        printf("initApp: retry_count: %d\n", retry_count);
     printf("initApp: CONFIG_FILE: %s\n", CONFIG_FILE);
     printf("initApp: DEVICE_FILE: %s\n", DEVICE_FILE);
 #endif
 }
 
 int initData() {
-    if (!initDevice(&device_list)) {
+    if (!initDevice(&device_list, retry_count)) {
         FREE_LIST(&device_list);
         return 0;
     }

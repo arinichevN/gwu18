@@ -1,4 +1,5 @@
 
+#include "main.h"
 
 FUN_LIST_GET_BY_ID(Device)
 
@@ -56,7 +57,7 @@ void setResolution(Device *item, int resolution) {
     if (res == -1) {
         return;
     }
-    for (i = 0; i < RETRY_NUM; i++) {
+    for (i = 0; i < item->retry_count; i++) {
 #ifndef PLATFORM_ANY
         if (ds18b20_set_resolution(item->pin, item->addr, res)) {
             item->resolution_set_state = 1;
@@ -80,7 +81,7 @@ void setResolutionC(Device *item, int resolution) {
 void getResolution(Device *item) {
     int i;
     item->resolution_state = 0;
-    for (i = 0; i < RETRY_NUM; i++) {
+    for (i = 0; i < item->retry_count; i++) {
 #ifndef PLATFORM_ANY
         if (ds18b20_get_resolution(item->pin, item->addr, &item->resolution)) {
             item->resolution_state = 1;
@@ -97,7 +98,7 @@ void getResolution(Device *item) {
 void getTemperature(Device *item) {
     int i;
     item->value_state = 0;
-    for (i = 0; i < RETRY_NUM; i++) {
+    for (i = 0; i < item->retry_count; i++) {
 #ifndef PLATFORM_ANY
         if (ds18b20_get_temp(item->pin, item->addr, &item->value)) {
             item->tm = getCurrentTime();
@@ -133,9 +134,7 @@ void sendFooter(int8_t crc) {
 }
 
 int catTemperature(Device *item, char *buf, size_t buf_size) {
-    char q[LINE_SIZE];
-    snprintf(q, sizeof q, "%d" ACP_DELIMITER_COLUMN_STR FLOAT_NUM ACP_DELIMITER_COLUMN_STR "%ld" ACP_DELIMITER_COLUMN_STR "%ld" ACP_DELIMITER_COLUMN_STR "%d" ACP_DELIMITER_ROW_STR, item->id, item->value, item->tm.tv_sec, item->tm.tv_nsec, item->value_state);
-    if (bufCat(buf, q, buf_size) == NULL) {
+    if (!acp_catFTS(item->id, item->value, item->tm, item->value_state, buf, buf_size)) {
         sendStrPack(ACP_QUANTIFIER_BROADCAST, ACP_RESP_BUF_OVERFLOW);
         return 0;
     }

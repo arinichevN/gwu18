@@ -10,8 +10,10 @@ int readSettings() {
     }
 
     int n;
-    n = fscanf(stream, "%d\t%255s\t%d\t", &sock_port, pid_path, &sock_buf_size);
-    if (n != 3) {
+    char s[LINE_SIZE];
+    fgets(s, LINE_SIZE, stream);
+    n = fscanf(stream, "%d\t%255s\t%d\t%d", &sock_port, pid_path, &sock_buf_size, &retry_count);
+    if (n != 4) {
         fclose(stream);
 #ifdef MODE_DEBUG
         fputs("ERROR: readSettings: bad row format", stderr);
@@ -27,7 +29,7 @@ int readSettings() {
 
 #define DEVICE_ROW_FORMAT "%d\t%d\t%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx\t%d\n"
 #define DEVICE_FIELD_COUNT 11
-int initDevice(DeviceList *list) {
+int initDevice(DeviceList *list, int retry_count) {
     FILE* stream = fopen(DEVICE_FILE, "r");
     if (stream == NULL) {
 #ifdef MODE_DEBUG
@@ -35,6 +37,8 @@ int initDevice(DeviceList *list) {
 #endif
         return 0;
     }
+        char s[LINE_SIZE];
+    fgets(s, LINE_SIZE, stream);
     int rnum = 0;
     while (1) {
         int n = 0, x1, x2, x4;
@@ -62,6 +66,7 @@ int initDevice(DeviceList *list) {
             fclose(stream);
             return 0;
         }
+        fgets(s, LINE_SIZE, stream);
         int done = 1;
         size_t i;
         FORL{
@@ -82,6 +87,7 @@ int initDevice(DeviceList *list) {
             LIi.value_state = 0;
             LIi.resolution_state = 0;
             LIi.resolution_set_state = 0;
+            LIi.retry_count=retry_count;
         }
         if (!done) {
             FREE_LIST(list);
