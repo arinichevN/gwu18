@@ -29,6 +29,7 @@ int readSettings() {
 
 #define DEVICE_ROW_FORMAT "%d\t%d\t%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx\t%d\n"
 #define DEVICE_FIELD_COUNT 11
+
 int initDevice(DeviceList *list, int retry_count) {
     FILE* stream = fopen(DEVICE_FILE, "r");
     if (stream == NULL) {
@@ -37,7 +38,7 @@ int initDevice(DeviceList *list, int retry_count) {
 #endif
         return 0;
     }
-        char s[LINE_SIZE];
+    char s[LINE_SIZE];
     fgets(s, LINE_SIZE, stream);
     int rnum = 0;
     while (1) {
@@ -87,7 +88,7 @@ int initDevice(DeviceList *list, int retry_count) {
             LIi.value_state = 0;
             LIi.resolution_state = 0;
             LIi.resolution_set_state = 0;
-            LIi.retry_count=retry_count;
+            LIi.retry_count = retry_count;
         }
         if (!done) {
             FREE_LIST(list);
