@@ -4,7 +4,7 @@ int readSettings() {
     FILE* stream = fopen(CONFIG_FILE, "r");
     if (stream == NULL) {
 #ifdef MODE_DEBUG
-        fputs("ERROR: readSettings: fopen", stderr);
+        fputs("ERROR: readSettings: fopen\n", stderr);
 #endif
         return 0;
     }
@@ -12,17 +12,17 @@ int readSettings() {
     int n;
     char s[LINE_SIZE];
     fgets(s, LINE_SIZE, stream);
-    n = fscanf(stream, "%d\t%255s\t%d\t%d", &sock_port, pid_path, &sock_buf_size, &retry_count);
+    n = fscanf(stream, "%d\t%255s\t%d\t%u", &sock_port, pid_path, &sock_buf_size, &retry_count);
     if (n != 4) {
         fclose(stream);
 #ifdef MODE_DEBUG
-        fputs("ERROR: readSettings: bad row format", stderr);
+        fputs("ERROR: readSettings: bad row format\n", stderr);
 #endif
         return 0;
     }
     fclose(stream);
 #ifdef MODE_DEBUG
-    printf("readSettings: sock_port: %d, pid_path: %s, sock_buf_size: %d\n", sock_port, pid_path, sock_buf_size);
+    printf("readSettings: \n\tsock_port: %d, \n\tpid_path: %s, \n\tsock_buf_size: %d \n\tretry_count: %u\n", sock_port, pid_path, sock_buf_size, retry_count);
 #endif
     return 1;
 }
@@ -30,7 +30,7 @@ int readSettings() {
 #define DEVICE_ROW_FORMAT "%d\t%d\t%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx\t%d\n"
 #define DEVICE_FIELD_COUNT 11
 
-int initDevice(DeviceList *list, int retry_count) {
+int initDevice(DeviceList *list, unsigned int retry_count) {
     FILE* stream = fopen(DEVICE_FILE, "r");
     if (stream == NULL) {
 #ifdef MODE_DEBUG

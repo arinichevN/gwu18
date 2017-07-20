@@ -13,7 +13,7 @@ int sock_fd = -1; //socket file descriptor
 size_t sock_buf_size = 0;
 Peer peer_client = {.fd = &sock_fd, .addr_size = sizeof peer_client.addr};
 
-int retry_count=0;
+unsigned int retry_count = 0;
 DeviceList device_list = {NULL, 0};
 
 I1List i1l = {NULL, 0};
@@ -213,6 +213,9 @@ void serverRun(int *state, int init_state) {
 }
 
 void initApp() {
+#ifdef MODE_DEBUG
+    printf("initApp: \n\tCONFIG_FILE: %s, \n\tDEVICE_FILE: %s\n", CONFIG_FILE, DEVICE_FILE);
+#endif
     if (!readSettings()) {
         exit_nicely_e("initApp: failed to read settings\n");
     }
@@ -227,15 +230,6 @@ void initApp() {
     if (!gpioSetup()) {
         exit_nicely_e("initApp: failed to initialize GPIO\n");
     }
-#endif
-#ifdef MODE_DEBUG
-    printf("initApp: PID: %d\n", proc_id);
-    printf("initApp: sock_port: %d\n", sock_port);
-    printf("initApp: sock_buf_size: %d\n", sock_buf_size);
-    printf("initApp: pid_path: %s\n", pid_path);
-        printf("initApp: retry_count: %d\n", retry_count);
-    printf("initApp: CONFIG_FILE: %s\n", CONFIG_FILE);
-    printf("initApp: DEVICE_FILE: %s\n", DEVICE_FILE);
 #endif
 }
 

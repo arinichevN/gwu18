@@ -56,7 +56,7 @@ typedef struct {
     int value_state;//0 if reading value from device failed
     int resolution_state;//0 if reading resolution from device failed
     int resolution_set_state;//0 if writing resolution to device failed
-    int retry_count;
+   unsigned int retry_count;
 } Device;
 
 DEF_LIST(Device)
@@ -64,7 +64,7 @@ DEF_LIST(Device)
 
 extern int readSettings() ;
 
-extern int initDevice(DeviceList *dl, int retry_count) ;
+extern int initDevice(DeviceList *dl, unsigned int retry_count) ;
 
 extern int checkDevice(DeviceList *dl) ;
 
