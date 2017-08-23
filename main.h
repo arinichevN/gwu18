@@ -4,10 +4,8 @@
 
 #include "lib/app.h"
 
-#ifndef PLATFORM_ANY
 #include "lib/gpio.h"
 #include "lib/1w.h"
-#endif
 
 #include "lib/ds18b20.h"
 
@@ -34,8 +32,7 @@
 
 #define DEVICE_FILE "" CONF_DIR "device.tsv"
 #define CONFIG_FILE "" CONF_DIR "config.tsv"
-
-
+#define LCORRECTION_FILE "" CONF_DIR "lcorrection.tsv"
 
 enum {
     ON = 1,
@@ -45,6 +42,11 @@ enum {
     WTIME
 } StateAPP;
 
+typedef struct {
+    int active;
+    float factor;
+    float delta;
+} LCORRECTION;
 
 typedef struct {
     int id;
@@ -57,6 +59,7 @@ typedef struct {
     int resolution_state;//0 if reading resolution from device failed
     int resolution_set_state;//0 if writing resolution to device failed
    unsigned int retry_count;
+   LCORRECTION lcorrection;
 } Device;
 
 DEF_LIST(Device)

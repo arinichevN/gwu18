@@ -1,5 +1,7 @@
 #include <string.h>
 
+#include "main.h"
+
 int readSettings() {
     FILE* stream = fopen(CONFIG_FILE, "r");
     if (stream == NULL) {
@@ -27,6 +29,7 @@ int readSettings() {
 
 #define DEVICE_ROW_FORMAT "%d\t%d\t%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx\t%d\n"
 #define DEVICE_FIELD_COUNT 11
+
 
 int initDevice(DeviceList *list, unsigned int retry_count) {
     FILE* stream = fopen(DEVICE_FILE, "r");
@@ -95,6 +98,42 @@ int initDevice(DeviceList *list, unsigned int retry_count) {
 #endif
             return 0;
         }
+    }
+    fclose(stream);
+    return 1;
+}
+
+int initDeviceLCorrection(DeviceList *list) {
+    int i;
+    FORL{
+        LIi.lcorrection.active=0;
+    }
+    FILE* stream = fopen(LCORRECTION_FILE, "r");
+    if (stream == NULL) {
+#ifdef MODE_DEBUG
+        fputs("ERROR: initDeviceLCorrection: fopen\n", stderr);
+#endif
+        return 0;
+    }
+    skipLine(stream);
+    while (1) {
+        int n, device_id;
+        float factor, delta;
+        n = fscanf(stream, "%d\t%f\t%f\n", &device_id, &factor, &delta);
+        if (n != 3) {
+            break;
+        }
+        Device * item=getDeviceById(device_id, list);
+        if(item==NULL){
+            break;
+        }
+        item->lcorrection.active=1;
+        item->lcorrection.factor=factor;
+        item->lcorrection.delta=delta;
+#ifdef MODE_DEBUG
+        printf("initDeviceLCorrection: device_id = %d, factor = %f, delta = %f\n", device_id, factor, delta);
+#endif
+
     }
     fclose(stream);
     return 1;

@@ -7,6 +7,8 @@ void printData(DeviceList *list) {
     sendStr(q, &crc);
     snprintf(q, sizeof q, "DEVICE_FILE: %s\n", DEVICE_FILE);
     sendStr(q, &crc);
+    snprintf(q, sizeof q, "LCORRECTION_FILE: %s\n", LCORRECTION_FILE);
+    sendStr(q, &crc);
     snprintf(q, sizeof q, "port: %d\n", sock_port);
     sendStr(q, &crc);
     snprintf(q, sizeof q, "pid_path: %s\n", pid_path);
@@ -35,6 +37,22 @@ void printData(DeviceList *list) {
         sendStr(q, &crc);
     }
     sendStr("+-----------+----------------+-----------+-----------+-----------+-----------+-----------+-----------+\n", &crc);
+
+    sendStr("+-----------------------------------------------+\n", &crc);
+    sendStr("|                   correction                  |\n", &crc);
+    sendStr("+-----------+-----------+-----------+-----------+\n", &crc);
+    sendStr("| device_id |  factor   |   delta   |  active   |\n", &crc);
+    sendStr("+-----------+-----------+-----------+-----------+\n", &crc);
+    FORL{
+        snprintf(q, sizeof q, "|%11d|%11f|%11f|%11d|\n",
+        LIi.id,
+        LIi.lcorrection.factor,
+        LIi.lcorrection.delta,
+        LIi.lcorrection.active
+        );
+        sendStr(q, &crc);
+    }
+    sendStr("+-----------+-----------+-----------+-----------+\n", &crc);
 
     sendFooter(crc);
 }
