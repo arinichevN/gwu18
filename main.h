@@ -13,6 +13,7 @@
 
 #include "lib/acp/main.h"
 #include "lib/acp/app.h"
+#include "lib/acp/prog.h"
 #include "lib/acp/ds18b20.h"
 #include "lib/udp.h"
 
@@ -33,6 +34,7 @@
 #define DEVICE_FILE "" CONF_DIR "device.tsv"
 #define CONFIG_FILE "" CONF_DIR "config.tsv"
 #define LCORRECTION_FILE "" CONF_DIR "lcorrection.tsv"
+
 
 enum {
     ON = 1,

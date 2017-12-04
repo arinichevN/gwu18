@@ -1,29 +1,27 @@
 
-void printData(DeviceList *list) {
+void printData(ACPResponse *response) {
+    DeviceList *list=&device_list;
     int i = 0;
     char q[LINE_SIZE];
-    uint8_t crc = 0;
     snprintf(q, sizeof q, "CONFIG_FILE: %s\n", CONFIG_FILE);
-    sendStr(q, &crc);
+    SEND_STR(q)
     snprintf(q, sizeof q, "DEVICE_FILE: %s\n", DEVICE_FILE);
-    sendStr(q, &crc);
+    SEND_STR(q)
     snprintf(q, sizeof q, "LCORRECTION_FILE: %s\n", LCORRECTION_FILE);
-    sendStr(q, &crc);
+    SEND_STR(q)
     snprintf(q, sizeof q, "port: %d\n", sock_port);
-    sendStr(q, &crc);
+    SEND_STR(q)
     snprintf(q, sizeof q, "pid_path: %s\n", pid_path);
-    sendStr(q, &crc);
-    snprintf(q, sizeof q, "sock_buf_size: %d\n", sock_buf_size);
-    sendStr(q, &crc);
+    SEND_STR(q)
     snprintf(q, sizeof q, "app_state: %s\n", getAppState(app_state));
-    sendStr(q, &crc);
+    SEND_STR(q)
     snprintf(q, sizeof q, "PID: %d\n", proc_id);
-    sendStr(q, &crc);
-    sendStr("+----------------------------------------------------------------------------------------------------+\n", &crc);
-    sendStr("|                                             device                                                 |\n", &crc);
-    sendStr("+-----------+----------------+-----------+-----------+-----------+-----------+-----------+-----------+\n", &crc);
-    sendStr("|     id    |      addr      |    pin    |   value   | resolution|value_state|  r_state  |r_set_state|\n", &crc);
-    sendStr("+-----------+----------------+-----------+-----------+-----------+-----------+-----------+-----------+\n", &crc);
+    SEND_STR(q)
+    SEND_STR("+----------------------------------------------------------------------------------------------------+\n")
+    SEND_STR("|                                             device                                                 |\n")
+    SEND_STR("+-----------+----------------+-----------+-----------+-----------+-----------+-----------+-----------+\n")
+    SEND_STR("|     id    |      addr      |    pin    |   value   | resolution|value_state|  r_state  |r_set_state|\n")
+    SEND_STR("+-----------+----------------+-----------+-----------+-----------+-----------+-----------+-----------+\n")
     FORL{
         snprintf(q, sizeof q, "|%11d|%.2hhx%.2hhx%.2hhx%.2hhx%.2hhx%.2hhx%.2hhx%.2hhx|%11d|%11f|%11d|%11d|%11d|%11d|\n",
         LIi.id,
@@ -34,15 +32,15 @@ void printData(DeviceList *list) {
         LIi.value_state,
         LIi.resolution_state,
         LIi.resolution_set_state);
-        sendStr(q, &crc);
+        SEND_STR(q)
     }
-    sendStr("+-----------+----------------+-----------+-----------+-----------+-----------+-----------+-----------+\n", &crc);
+    SEND_STR("+-----------+----------------+-----------+-----------+-----------+-----------+-----------+-----------+\n")
 
-    sendStr("+-----------------------------------------------+\n", &crc);
-    sendStr("|                   correction                  |\n", &crc);
-    sendStr("+-----------+-----------+-----------+-----------+\n", &crc);
-    sendStr("| device_id |  factor   |   delta   |  active   |\n", &crc);
-    sendStr("+-----------+-----------+-----------+-----------+\n", &crc);
+    SEND_STR("+-----------------------------------------------+\n")
+    SEND_STR("|                   correction                  |\n")
+    SEND_STR("+-----------+-----------+-----------+-----------+\n")
+    SEND_STR("| device_id |  factor   |   delta   |  active   |\n")
+    SEND_STR("+-----------+-----------+-----------+-----------+\n")
     FORL{
         snprintf(q, sizeof q, "|%11d|%11f|%11f|%11d|\n",
         LIi.id,
@@ -50,35 +48,28 @@ void printData(DeviceList *list) {
         LIi.lcorrection.delta,
         LIi.lcorrection.active
         );
-        sendStr(q, &crc);
+        SEND_STR(q)
     }
-    sendStr("+-----------+-----------+-----------+-----------+\n", &crc);
-
-    sendFooter(crc);
+    SEND_STR_L("+-----------+-----------+-----------+-----------+\n")
 }
 
-void printHelp() {
+void printHelp(ACPResponse *response) {
     char q[LINE_SIZE];
-    uint8_t crc = 0;
-    sendStr("COMMAND LIST\n", &crc);
-    snprintf(q, sizeof q, "%c\tput process into active mode; process will read configuration\n", ACP_CMD_APP_START);
-    sendStr(q, &crc);
-    snprintf(q, sizeof q, "%c\tput process into standby mode; all running programs will be stopped\n", ACP_CMD_APP_STOP);
-    sendStr(q, &crc);
-    snprintf(q, sizeof q, "%c\tfirst stop and then start process\n", ACP_CMD_APP_RESET);
-    sendStr(q, &crc);
-    snprintf(q, sizeof q, "%c\tterminate process\n", ACP_CMD_APP_EXIT);
-    sendStr(q, &crc);
-    snprintf(q, sizeof q, "%c\tget state of process; response: B - process is in active mode, I - process is in standby mode\n", ACP_CMD_APP_PING);
-    sendStr(q, &crc);
-    snprintf(q, sizeof q, "%c\tget some variable's values; response will be packed into multiple packets\n", ACP_CMD_APP_PRINT);
-    sendStr(q, &crc);
-    snprintf(q, sizeof q, "%c\tget this help; response will be packed into multiple packets\n", ACP_CMD_APP_HELP);
-    sendStr(q, &crc);
-
-    snprintf(q, sizeof q, "%c\tget temperature in format: sensorId_temperature_timeSec_timeNsec_valid; program id expected if '.' quantifier is used\n", ACP_CMD_GET_FTS);
-    sendStr(q, &crc);
-    snprintf(q, sizeof q, "%c\tget sensor resolution in format: sensorId_resolution_valid; program id expected if '.' quantifier is used\n", ACP_CMD_DS18B20_GET_RESOLUTION);
-    sendStr(q, &crc);
-    sendFooter(crc);
+    SEND_STR("COMMAND LIST\n")
+    snprintf(q, sizeof q, "%s\tput process into active mode; process will read configuration\n", ACP_CMD_APP_START);
+    SEND_STR(q)
+    snprintf(q, sizeof q, "%s\tput process into standby mode; all running programs will be stopped\n", ACP_CMD_APP_STOP);
+    SEND_STR(q)
+    snprintf(q, sizeof q, "%s\tfirst stop and then start process\n", ACP_CMD_APP_RESET);
+    SEND_STR(q)
+    snprintf(q, sizeof q, "%s\tterminate process\n", ACP_CMD_APP_EXIT);
+    SEND_STR(q)
+    snprintf(q, sizeof q, "%s\tget state of process; response: B - process is in active mode, I - process is in standby mode\n", ACP_CMD_APP_PING);
+    SEND_STR(q)
+    snprintf(q, sizeof q, "%s\tget some variable's values; response will be packed into multiple packets\n", ACP_CMD_APP_PRINT);
+    SEND_STR(q)
+    snprintf(q, sizeof q, "%s\tget this help; response will be packed into multiple packets\n", ACP_CMD_APP_HELP);
+    SEND_STR(q)
+    snprintf(q, sizeof q, "%s\tget temperature in format: sensorId_temperature_timeSec_timeNsec_valid; program id expected\n", ACP_CMD_GET_FTS);
+    SEND_STR_L(q)
 }

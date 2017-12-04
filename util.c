@@ -121,38 +121,12 @@ void getTemperature(Device *item) {
     }
 }
 
-int sendStrPack(char qnf, char *cmd) {
-    extern Peer peer_client;
-    return acp_sendStrPack(qnf, cmd, &peer_client);
+int catTemperature(Device *item, ACPResponse *response) {
+    return acp_responseFTSCat(item->id, item->value, item->tm, item->value_state, response);
 }
 
-int sendBufPack(char *buf, char qnf, char *cmd_str) {
-    extern Peer peer_client;
-    return acp_sendBufPack(buf, qnf, cmd_str, &peer_client);
-}
-
-void sendStr(const char *s, uint8_t *crc) {
-    acp_sendStr(s, crc, &peer_client);
-}
-
-void sendFooter(int8_t crc) {
-    acp_sendFooter(crc, &peer_client);
-}
-
-int catTemperature(Device *item, char *buf, size_t buf_size) {
-    if (!acp_catFTS(item->id, item->value, item->tm, item->value_state, buf, buf_size)) {
-        sendStrPack(ACP_QUANTIFIER_BROADCAST, ACP_RESP_BUF_OVERFLOW);
-        return 0;
-    }
-    return 1;
-}
-
-int catResolution(Device *item, char *buf, size_t buf_size) {
+int catResolution(Device *item, ACPResponse *response) {
     char q[LINE_SIZE];
     snprintf(q, sizeof q, "%d" ACP_DELIMITER_COLUMN_STR "%d" ACP_DELIMITER_COLUMN_STR "%d" ACP_DELIMITER_ROW_STR, item->id, item->resolution, item->resolution_state);
-    if (bufCat(buf, q, buf_size) == NULL) {
-        sendStrPack(ACP_QUANTIFIER_BROADCAST, ACP_RESP_BUF_OVERFLOW);
-        return 0;
-    }
-    return 1;
+    return acp_responseStrCat(response, q);
 }
