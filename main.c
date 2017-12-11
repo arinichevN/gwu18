@@ -77,11 +77,8 @@ void serverRun(int *state, int init_state) {
                 }
             }
         }
-        if (!acp_responseSend(&response, &peer_client)) {
-            return;
-        }
     }
-    return;
+    acp_responseSend(&response, &peer_client);
 }
 
 void initApp() {
@@ -114,8 +111,7 @@ int initData() {
     if (!initDeviceLCorrection(&device_list)) {
         ;
     }
-    i1l.item = (int *) malloc(device_list.length * sizeof *(i1l.item));
-    if (i1l.item == NULL) {
+    if (!initI1List(&i1l, device_list.length)) {
         FREE_LIST(&device_list);
         return 0;
     }
