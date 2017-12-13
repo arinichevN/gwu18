@@ -43,6 +43,7 @@ function move_conf {
 	([ -d $CONF_DIR_APP ] || mkdir $CONF_DIR_APP) && \
 	cp  config.tsv $CONF_DIR_APP && \
 	cp  device.tsv $CONF_DIR_APP && \
+	cp  lcorrection.tsv $CONF_DIR_APP && \
 	chmod -R a+w $CONF_DIR_APP
 	echo "Your $APP configuration files are here: $CONF_DIR_APP";
 }
@@ -100,14 +101,14 @@ function part_debug {
 function uninstall {
 	pkill -F $PID_DIR/$APP.pid --signal 9
 	update-rc.d -f $APP remove
-	rm -f $INST_DIR/$APP
-	rm -f $INST_DIR/$APP_DBG
-	rm -rf $CONF_DIR_APP
+	rm -v $INST_DIR/$APP
+	rm -v $INST_DIR/$APP_DBG
+	rm -rv $CONF_DIR_APP
 }
 function uninstall_nc {
 	pkill -F $PID_DIR/$APP.pid --signal 9
-	rm -f $INST_DIR/$APP
-	rm -f $INST_DIR/$APP_DBG
+	rm -v $INST_DIR/$APP
+	rm -v $INST_DIR/$APP_DBG
 }
 f=$1
 ${f}
