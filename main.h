@@ -21,9 +21,6 @@
 #define APP_NAME gwu18
 #define APP_NAME_STR TOSTRING(APP_NAME)
 
-#define ID_BROADCAST 0xff
-#define FLOAT_NUM "%.3f"
-
 #ifdef MODE_FULL
 #define CONF_DIR "/etc/controller/" APP_NAME_STR "/"
 #endif
