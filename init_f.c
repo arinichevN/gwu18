@@ -6,23 +6,23 @@ int readSettings() {
     FILE* stream = fopen(CONFIG_FILE, "r");
     if (stream == NULL) {
 #ifdef MODE_DEBUG
-        perror("readSettings()");
+       fprintf(stderr, "%s()", F); perror("");
 #endif
         return 0;
     }
     skipLine(stream);
     int n;
-    n = fscanf(stream, "%d\t%255s\t%u", &sock_port, pid_path, &retry_count);
-    if (n != 3) {
+    n = fscanf(stream, "%d\t%u", &sock_port, &retry_count);
+    if (n != 2) {
         fclose(stream);
 #ifdef MODE_DEBUG
-        fputs("ERROR: readSettings: bad row format\n", stderr);
+        fprintf(stderr, "%s(): bad row format\n", F);
 #endif
         return 0;
     }
     fclose(stream);
 #ifdef MODE_DEBUG
-    printf("readSettings: \n\tsock_port: %d, \n\tpid_path: %s\n\tretry_count: %u\n", sock_port, pid_path, retry_count);
+    printf("%s(): \n\tsock_port: %d, \n\tretry_count: %u\n",F, sock_port, retry_count);
 #endif
     return 1;
 }
@@ -35,7 +35,7 @@ int initDevice(DeviceList *list, unsigned int retry_count) {
     FILE* stream = fopen(DEVICE_FILE, "r");
     if (stream == NULL) {
 #ifdef MODE_DEBUG
-        perror("initDevice");
+        fprintf(stderr, "%s()", F); perror("");
 #endif
         return 0;
     }
@@ -49,7 +49,7 @@ int initDevice(DeviceList *list, unsigned int retry_count) {
             break;
         }
 #ifdef MODE_DEBUG
-        printf("initDevice: count: id = %d, pin = %d, resolution = %d\n", x1, x2, x4);
+        printf("%s(): count: id = %d, pin = %d, resolution = %d\n",F, x1, x2, x4);
 #endif
         rnum++;
 
@@ -111,7 +111,7 @@ int initDeviceLCorrection(DeviceList *list) {
     FILE* stream = fopen(LCORRECTION_FILE, "r");
     if (stream == NULL) {
 #ifdef MODE_DEBUG
-        fputs("ERROR: initDeviceLCorrection: fopen\n", stderr);
+        fprintf(stderr, "%s()", F); perror("");
 #endif
         return 0;
     }
@@ -131,7 +131,7 @@ int initDeviceLCorrection(DeviceList *list) {
         item->lcorrection.factor=factor;
         item->lcorrection.delta=delta;
 #ifdef MODE_DEBUG
-        printf("initDeviceLCorrection: device_id = %d, factor = %f, delta = %f\n", device_id, factor, delta);
+        printf("%s(): device_id = %d, factor = %f, delta = %f\n", F,device_id, factor, delta);
 #endif
 
     }

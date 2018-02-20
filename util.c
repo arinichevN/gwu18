@@ -58,16 +58,10 @@ void setResolution(Device *item, int resolution) {
         return;
     }
     for (i = 0; i < item->retry_count; i++) {
-#ifndef CPU_ANY
         if (ds18b20_set_resolution(item->pin, item->addr, res)) {
             item->resolution_set_state = 1;
             return;
         }
-#endif
-#ifdef CPU_ANY
-        item->resolution_set_state = 1;
-        return;
-#endif
     }
 }
 
@@ -82,42 +76,35 @@ void getResolution(Device *item) {
     int i;
     item->resolution_state = 0;
     for (i = 0; i < item->retry_count; i++) {
-#ifndef CPU_ANY
         if (ds18b20_get_resolution(item->pin, item->addr, &item->resolution)) {
             item->resolution_state = 1;
             return;
         }
-#endif
-#ifdef CPU_ANY
-        item->resolution_state = 1;
-        return;
-#endif
     }
 }
-void lcorrect(Device *item){
-    if(item->lcorrection.active){
-        item->value=item->value*item->lcorrection.factor + item->lcorrection.delta;
+
+void lcorrect(Device *item) {
+    if (item->lcorrection.active) {
+        item->value = item->value * item->lcorrection.factor + item->lcorrection.delta;
     }
 }
+
 void getTemperature(Device *item) {
-    int i;
+#ifdef CPU_ANY
+    item->value = 0.0f;
+    item->tm = getCurrentTime();
+    item->value_state = 1;
+    lcorrect(item);
+    return;
+#endif
     item->value_state = 0;
-    for (i = 0; i < item->retry_count; i++) {
-#ifndef CPU_ANY
+    for (int i = 0; i < item->retry_count; i++) {
         if (ds18b20_get_temp(item->pin, item->addr, &item->value)) {
             item->tm = getCurrentTime();
             item->value_state = 1;
             lcorrect(item);
             return;
         }
-#endif
-#ifdef CPU_ANY
-        item->value = 0.0f;
-        item->tm = getCurrentTime();
-        item->value_state = 1;
-        lcorrect(item);
-        return;
-#endif
     }
 }
 

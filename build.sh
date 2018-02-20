@@ -8,7 +8,7 @@ CONF_DIR_APP=$CONF_DIR/$APP
 PID_DIR=/var/run
 
 SOCK=udp
-DEBUG_PARAM="-Wall -pedantic"
+DEBUG_PARAM="-Wall -pedantic -g "
 MODE_DEBUG=-DMODE_DEBUG
 MODE_FULL=-DMODE_FULL
 
@@ -45,7 +45,7 @@ function move_conf {
 
 #your application will run on OS startup
 function conf_autostart {
-	cp -v starter_init /etc/init.d/$APP && \
+	cp -v init.sh /etc/init.d/$APP && \
 	chmod 755 /etc/init.d/$APP && \
 	update-rc.d -f $APP remove && \
 	update-rc.d $APP defaults 30 && \
@@ -54,15 +54,15 @@ function conf_autostart {
 
 function build_lib {
 	gcc $1 $CPU -c app.c -D_REENTRANT $DEBUG_PARAM -pthread && \
-	gcc $1 $CPU -c crc.c $DEBUG_PARAM && \
-	gcc $1 $CPU $PINOUT -c gpio.c $DEBUG_PARAM && \
-	gcc $1 $CPU -c 1w.c $DEBUG_PARAM && \
-	gcc $1 $CPU -c timef.c $DEBUG_PARAM && \
-	gcc $1 $CPU -c $SOCK.c $DEBUG_PARAM && \
-	gcc $1 $CPU -c util.c $DEBUG_PARAM && \
-	gcc $1 $CPU -c ds18b20.c $DEBUG_PARAM && \
+	gcc $1 $CPU -c crc.c -D_REENTRANT $DEBUG_PARAM -pthread && \
+	gcc $1 $CPU $PINOUT -c gpio.c -D_REENTRANT $DEBUG_PARAM -pthread && \
+	gcc $1 $CPU -c 1w.c -D_REENTRANT $DEBUG_PARAM -pthread && \
+	gcc $1 $CPU -c timef.c -D_REENTRANT $DEBUG_PARAM -pthread && \
+	gcc $1 $CPU -c $SOCK.c -D_REENTRANT $DEBUG_PARAM -pthread && \
+	gcc $1 $CPU -c util.c -D_REENTRANT $DEBUG_PARAM -pthread && \
+	gcc $1 $CPU -c ds18b20.c -D_REENTRANT $DEBUG_PARAM -pthread && \
 	cd acp && \
-	gcc $1 $CPU -c main.c $DEBUG_PARAM && \
+	gcc $1 $CPU -c main.c -D_REENTRANT $DEBUG_PARAM -pthread && \
 	cd ../ && \
 	echo "library: making archive..." && \
 	rm -f libpac.a
@@ -93,17 +93,16 @@ function full_nc {
 function part_debug {
 	build $MODE_DEBUG $APP_DBG $NONE
 }
-function uninstall {
-	pkill -F $PID_DIR/$APP.pid --signal 9
-	update-rc.d -f $APP remove
-	rm -v $INST_DIR/$APP
-	rm -v $INST_DIR/$APP_DBG
-	rm -rv $CONF_DIR_APP
-}
 function uninstall_nc {
-	pkill -F $PID_DIR/$APP.pid --signal 9
-	rm -v $INST_DIR/$APP
-	rm -v $INST_DIR/$APP_DBG
+	pkill $APP --signal 9
+	pkill $APP_DBG --signal 9
+	rm -f $INST_DIR/$APP
+	rm -f $INST_DIR/$APP_DBG
+}
+function uninstall {
+	uninstall_nc
+	update-rc.d -f $APP remove
+	rm -rf $CONF_DIR_APP
 }
 f=$1
 ${f}
