@@ -1,54 +1,44 @@
 
 void printData(ACPResponse *response) {
-    DeviceList *list=&device_list;
+    DeviceList *list = &device_list;
     int i = 0;
     char q[LINE_SIZE];
-    snprintf(q, sizeof q, "CONFIG_FILE: %s\n", CONFIG_FILE);
+    snprintf(q, sizeof q, "CONF_MAIN_FILE: %s\n", CONF_MAIN_FILE);
     SEND_STR(q)
-    snprintf(q, sizeof q, "DEVICE_FILE: %s\n", DEVICE_FILE);
+    snprintf(q, sizeof q, "CONF_DEVICE_FILE: %s\n", CONF_DEVICE_FILE);
     SEND_STR(q)
-    snprintf(q, sizeof q, "LCORRECTION_FILE: %s\n", LCORRECTION_FILE);
+    snprintf(q, sizeof q, "CONF_LCORRECTION_FILE: %s\n", CONF_LCORRECTION_FILE);
     SEND_STR(q)
     snprintf(q, sizeof q, "port: %d\n", sock_port);
     SEND_STR(q)
     snprintf(q, sizeof q, "app_state: %s\n", getAppState(app_state));
     SEND_STR(q)
     snprintf(q, sizeof q, "PID: %d\n", getpid());
-    SEND_STR(q)
-    SEND_STR("+----------------------------------------------------------------------------------------------------+\n")
-    SEND_STR("|                                             device                                                 |\n")
-    SEND_STR("+-----------+----------------+-----------+-----------+-----------+-----------+-----------+-----------+\n")
-    SEND_STR("|     id    |      addr      |    pin    |   value   | resolution|value_state|  r_state  |r_set_state|\n")
-    SEND_STR("+-----------+----------------+-----------+-----------+-----------+-----------+-----------+-----------+\n")
-    FORL{
-        snprintf(q, sizeof q, "|%11d|%.2hhx%.2hhx%.2hhx%.2hhx%.2hhx%.2hhx%.2hhx%.2hhx|%11d|%11f|%11d|%11d|%11d|%11d|\n",
-        LIi.id,
-        LIi.addr[0], LIi.addr[1], LIi.addr[2], LIi.addr[3], LIi.addr[4], LIi.addr[5], LIi.addr[6], LIi.addr[7],
-        LIi.pin,
-        LIi.value,
-        LIi.resolution,
-        LIi.value_state,
-        LIi.resolution_state,
-        LIi.resolution_set_state);
-        SEND_STR(q)
-    }
-    SEND_STR("+-----------+----------------+-----------+-----------+-----------+-----------+-----------+-----------+\n")
 
-    SEND_STR("+-----------------------------------------------+\n")
-    SEND_STR("|                   correction                  |\n")
-    SEND_STR("+-----------+-----------+-----------+-----------+\n")
-    SEND_STR("| device_id |  factor   |   delta   |  active   |\n")
-    SEND_STR("+-----------+-----------+-----------+-----------+\n")
-    FORL{
-        snprintf(q, sizeof q, "|%11d|%11f|%11f|%11d|\n",
-        LIi.id,
-        LIi.lcorrection.factor,
-        LIi.lcorrection.delta,
-        LIi.lcorrection.active
-        );
+    SEND_STR(q)
+    SEND_STR("+--------------------------------------------------------------------------------------------------+\n")
+    SEND_STR("|                                   device                                                         |\n")
+    SEND_STR("+----+----------------+----+-----------+-----------+-----------+-----------+-----------+-----------+\n")
+    SEND_STR("| id |      addr      |pin |   value   | resolution| lcorr_ptr |value_state|  r_state  |r_set_state|\n")
+    SEND_STR("+----+----------------+----+-----------+-----------+-----------+-----------+-----------+-----------+\n")
+    FORL {
+        snprintf(q, sizeof q, "|%4d|%.2hhx%.2hhx%.2hhx%.2hhx%.2hhx%.2hhx%.2hhx%.2hhx|%4d|%11f|%11d|%11p|%11d|%11d|%11d|\n",
+                LIi.id,
+                LIi.addr[0], LIi.addr[1], LIi.addr[2], LIi.addr[3], LIi.addr[4], LIi.addr[5], LIi.addr[6], LIi.addr[7],
+                LIi.pin,
+                LIi.result.value,
+                LIi.resolution,
+                (void *) LIi.lcorrection,
+                LIi.result.state,
+                LIi.resolution_state,
+                LIi.resolution_set_state
+                );
         SEND_STR(q)
     }
-    SEND_STR_L("+-----------+-----------+-----------+-----------+\n")
+    SEND_STR("+----+----------------+----+-----------+-----------+-----------+-----------+-----------+-----------+\n")
+
+    acp_sendLCorrectionListInfo(&lcorrection_list, response, &peer_client);
+    SEND_STR_L("-\n")
 }
 
 void printHelp(ACPResponse *response) {

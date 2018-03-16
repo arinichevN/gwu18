@@ -2,54 +2,17 @@
 
 int app_state = APP_INIT;
 int sock_port = -1;
-int sock_fd = -1; //socket file descriptor
+int sock_fd = -1;
+
 Peer peer_client = {.fd = &sock_fd, .addr_size = sizeof peer_client.addr};
 
 unsigned int retry_count = 0;
-DeviceList device_list = {NULL, 0};
+LCorrectionList lcorrection_list = LIST_INITIALIZER;
+DeviceList device_list = LIST_INITIALIZER;
 
 #include "util.c"
 #include "print.c"
 #include "init_f.c"
-
-int checkDevice(DeviceList *dl) {
-    size_t i, j;
-    //valid pin address
-
-    for (i = 0; i < dl->length; i++) {
-        if (!checkPin(dl->item[i].pin)) {
-            fprintf(stderr, "%s(): check device table: bad pin=%d where id=%d\n",F, dl->item[i].pin, dl->item[i].id);
-            return 0;
-        }
-    }
-
-    //retry_count
-    for (i = 0; i < dl->length; i++) {
-        if (dl->item[i].retry_count < 0) {
-            fprintf(stderr, "%s(): check device table: bad retry_count=%d where id=%d\n",F, dl->item[i].retry_count, dl->item[i].id);
-            return 0;
-        }
-    }
-    //unique id
-    for (i = 0; i < dl->length; i++) {
-        for (j = i + 1; j < dl->length; j++) {
-            if (dl->item[i].id == dl->item[j].id) {
-                fprintf(stderr, "%s(): check device table: ids should be unique, repetition found where id=%d\n",F, dl->item[i].id);
-                return 0;
-            }
-        }
-    }
-    //unique addresses on certain pin
-    for (i = 0; i < dl->length; i++) {
-        for (j = i + 1; j < dl->length; j++) {
-            if (dl->item[i].pin == dl->item[j].pin && memcmp(dl->item[i].addr, dl->item[j].addr, sizeof dl->item[i].addr) == 0) {
-                fprintf(stderr, "%s(): check device table: addresses on certain pin should be unique, repetition found where id=%d and id=%d\n", F,dl->item[i].id, dl->item[j].id);
-                return 0;
-            }
-        }
-    }
-    return 1;
-}
 
 void serverRun(int *state, int init_state) {
     SERVER_HEADER
@@ -74,10 +37,7 @@ void serverRun(int *state, int init_state) {
 }
 
 void initApp() {
-#ifdef MODE_DEBUG
-    printf("initApp: \n\tCONFIG_FILE: %s, \n\tDEVICE_FILE: %s\n", CONFIG_FILE, DEVICE_FILE);
-#endif
-    if (!readSettings()) {
+    if (!readSettings(&sock_port, &retry_count, CONF_MAIN_FILE)) {
         exit_nicely_e("initApp: failed to read settings\n");
     }
     if (!initServer(&sock_fd, sock_port)) {
@@ -89,25 +49,24 @@ void initApp() {
 }
 
 int initData() {
-    if (!initDevice(&device_list, retry_count)) {
+    initLCorrection(&lcorrection_list, CONF_LCORRECTION_FILE);
+    if (!initDevice(&device_list, retry_count, &lcorrection_list, CONF_DEVICE_FILE)) {
         FREE_LIST(&device_list);
+        FREE_LIST(&lcorrection_list);
         return 0;
     }
     if (!checkDevice(&device_list)) {
         FREE_LIST(&device_list);
+        FREE_LIST(&lcorrection_list);
         return 0;
-    }
-    if (!initDeviceLCorrection(&device_list)) {
-        ;
     }
 #ifdef CPU_ANY
     puts("return 1;");
     return 1;
 #endif
-    size_t i, j;
-    for (i = 0; i < device_list.length; i++) {
+    for (size_t i = 0; i < device_list.length; i++) {
         int found = 0;
-        for (j = 0; j < i; j++) {
+        for (size_t j = 0; j < i; j++) {
             if (device_list.item[j].pin == device_list.item[i].pin) {
                 found = 1;
                 break;
@@ -116,11 +75,11 @@ int initData() {
         if (!found) {//pin mode is not set yet for this pin
             pinModeOut(device_list.item[i].pin);
         }
-    } 
-    for (i = 0; i < device_list.length; i++) {
+    }
+    for (size_t i = 0; i < device_list.length; i++) {
         setResolution(&device_list.item[i], device_list.item[i].resolution);
     }
-    for (i = 0; i < device_list.length; i++) {
+    for (size_t i = 0; i < device_list.length; i++) {
         getResolution(&device_list.item[i]);
     }
     return 1;
@@ -128,6 +87,7 @@ int initData() {
 
 void freeData() {
     FREE_LIST(&device_list);
+    FREE_LIST(&lcorrection_list);
 }
 
 void freeApp() {
@@ -142,7 +102,6 @@ void exit_nicely() {
 }
 
 void exit_nicely_e(char *s) {
-
     fprintf(stderr, "%s", s);
     freeApp();
     exit(EXIT_FAILURE);
@@ -168,7 +127,7 @@ int main(int argc, char** argv) {
     int data_initialized = 0;
     while (1) {
 #ifdef MODE_DEBUG
-        printf("%s(): %s %d\n", F,getAppState(app_state), data_initialized);
+        printf("%s(): %s %d\n", F, getAppState(app_state), data_initialized);
 #endif
         switch (app_state) {
             case APP_INIT:

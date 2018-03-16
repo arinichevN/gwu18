@@ -6,9 +6,9 @@
 
 #include "lib/gpio.h"
 #include "lib/1w.h"
-
-#include "lib/ds18b20.h"
-
+#include "lib/tsv.h"
+#include "lib/device/ds18b20.h"
+#include "lib/lcorrection.h"
 #include "lib/timef.h"
 
 #include "lib/acp/main.h"
@@ -25,13 +25,12 @@
 #define CONF_DIR "/etc/controller/" APP_NAME_STR "/"
 #endif
 #ifndef MODE_FULL
-#define CONF_DIR "./"
+#define CONF_DIR "./config/"
 #endif
 
-#define DEVICE_FILE "" CONF_DIR "device.tsv"
-#define CONFIG_FILE "" CONF_DIR "config.tsv"
-#define LCORRECTION_FILE "" CONF_DIR "lcorrection.tsv"
-
+#define CONF_MAIN_FILE CONF_DIR "main.tsv"
+#define CONF_DEVICE_FILE CONF_DIR "device.tsv"
+#define CONF_LCORRECTION_FILE CONF_DIR "lcorrection.tsv"
 
 enum {
     ON = 1,
@@ -42,47 +41,35 @@ enum {
 } StateAPP;
 
 typedef struct {
-    int active;
-    float factor;
-    float delta;
-} LCORRECTION;
-
-typedef struct {
     int id;
     uint8_t addr[DS18B20_SCRATCHPAD_BYTE_NUM];
     int pin;
-    struct timespec tm;
-    float value;
+    FTS result;
     int resolution;
-    int value_state;//0 if reading value from device failed
-    int resolution_state;//0 if reading resolution from device failed
-    int resolution_set_state;//0 if writing resolution to device failed
-   unsigned int retry_count;
-   LCORRECTION lcorrection;
+    int resolution_state; //0 if reading resolution from device failed
+    int resolution_set_state; //0 if writing resolution to device failed
+    unsigned int retry_count;
+    LCorrection *lcorrection;
 } Device;
 
 DEC_LIST(Device)
 
 
-extern int readSettings() ;
+extern int readSettings();
 
-extern int initDevice(DeviceList *dl, unsigned int retry_count) ;
+extern void serverRun(int *state, int init_state);
 
-extern int checkDevice(DeviceList *dl) ;
+extern void initApp();
 
-extern void serverRun(int *state, int init_state) ;
+extern int initData();
 
-extern void initApp() ;
+extern void freeData();
 
-extern int initData() ;
+extern void freeApp();
 
-extern void freeData() ;
+extern void exit_nicely();
 
-extern void freeApp() ;
-
-extern void exit_nicely() ;
-
-extern void exit_nicely_e(char *s) ;
+extern void exit_nicely_e(char *s);
 
 #endif 
 

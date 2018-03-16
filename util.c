@@ -26,6 +26,35 @@ int checkResolution(int res) {
     return 1;
 }
 
+int checkDevice(DeviceList *dl) {
+    int valid = 1;
+    for (size_t i = 0; i < dl->length; i++) {
+        if (!checkPin(dl->item[i].pin)) {
+            fprintf(stderr, "%s(): check device table: bad pin=%d where id=%d\n", F, dl->item[i].pin, dl->item[i].id);
+            valid = 0;
+        }
+        if (dl->item[i].retry_count < 0) {
+            fprintf(stderr, "%s(): check device table: bad retry_count=%d where id=%d\n", F, dl->item[i].retry_count, dl->item[i].id);
+            valid = 0;
+        }
+        //unique id
+        for (size_t j = i + 1; j < dl->length; j++) {
+            if (dl->item[i].id == dl->item[j].id) {
+                fprintf(stderr, "%s(): check device table: ids should be unique, repetition found where id=%d\n", F, dl->item[i].id);
+                valid = 0;
+            }
+        }
+        //unique addresses on certain pin
+        for (size_t j = i + 1; j < dl->length; j++) {
+            if (dl->item[i].pin == dl->item[j].pin && memcmp(dl->item[i].addr, dl->item[j].addr, sizeof dl->item[i].addr) == 0) {
+                fprintf(stderr, "%s(): check device table: addresses on certain pin should be unique, repetition found where id=%d and id=%d\n", F, dl->item[i].id, dl->item[j].id);
+                valid = 0;
+            }
+        }
+    }
+    return valid;
+}
+
 int requestResolutionParamValid(I2List *list) {
     int i;
     for (i = 0; i < list->length; i++) {
@@ -83,33 +112,28 @@ void getResolution(Device *item) {
     }
 }
 
-void lcorrect(Device *item) {
-    if (item->lcorrection.active) {
-        item->value = item->value * item->lcorrection.factor + item->lcorrection.delta;
-    }
-}
 
 void getTemperature(Device *item) {
 #ifdef CPU_ANY
-    item->value = 0.0f;
-    item->tm = getCurrentTime();
-    item->value_state = 1;
-    lcorrect(item);
+    item->result.value = 0.0f;
+    item->result.tm = getCurrentTime();
+    item->result.state = 1;
+    lcorrect(&item->result.value, item->lcorrection);
     return;
 #endif
-    item->value_state = 0;
+    item->result.state = 0;
     for (int i = 0; i < item->retry_count; i++) {
-        if (ds18b20_get_temp(item->pin, item->addr, &item->value)) {
-            item->tm = getCurrentTime();
-            item->value_state = 1;
-            lcorrect(item);
+        if (ds18b20_get_temp(item->pin, item->addr, &item->result.value)) {
+            item->result.tm = getCurrentTime();
+            item->result.state = 1;
+            lcorrect(&item->result.value, item->lcorrection);
             return;
         }
     }
 }
 
 int catTemperature(Device *item, ACPResponse *response) {
-    return acp_responseFTSCat(item->id, item->value, item->tm, item->value_state, response);
+    return acp_responseFTSCat(item->id, item->result.value, item->result.tm, item->result.state, response);
 }
 
 int catResolution(Device *item, ACPResponse *response) {
