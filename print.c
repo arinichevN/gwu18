@@ -1,7 +1,6 @@
 
 void printData(ACPResponse *response) {
     DeviceList *list = &device_list;
-    int i = 0;
     char q[LINE_SIZE];
     snprintf(q, sizeof q, "CONF_MAIN_FILE: %s\n", CONF_MAIN_FILE);
     SEND_STR(q)

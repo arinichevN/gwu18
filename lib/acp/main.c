@@ -1030,7 +1030,6 @@ void acp_pingPeer(Peer *item) {
 }
 
 void acp_pingPeerList(PeerList *list, struct timespec interval, struct timespec now) {
-    int i;
     FORL{
         if (timeHasPassed(interval, LIi.time1, now)) {
             acp_pingPeer(&LIi);
@@ -1226,7 +1225,7 @@ void acp_sendLCorrectionListInfo(LCorrectionList *list, ACPResponse *response, P
     ACP_SEND_STR("+-----------+-----------+-----------+-----------+\n")
     ACP_SEND_STR("|  pointer  |    id     |  factor   |   delta   |\n")
     ACP_SEND_STR("+-----------+-----------+-----------+-----------+\n")
-    FORLi {
+    FORL {
         snprintf(q, sizeof q, "|%11p|%11d|%11.3f|%11.3f|\n",
                 (void *) &LIi,
                 LIi.id,
@@ -1245,7 +1244,7 @@ void acp_sendLReductionListInfo(LReductionList *list, ACPResponse *response, Pee
     ACP_SEND_STR("+-----------+-----------+-----------+-----------+-----------+-----------+\n")
     ACP_SEND_STR("|  pointer  |    id     |  min_in   |  max_in   |  min_out  |  max_out  |\n")
     ACP_SEND_STR("+-----------+-----------+-----------+-----------+-----------+-----------+\n")
-    FORLi {
+    FORL {
         snprintf(q, sizeof q, "|%11p|%11d|%11.3f|%11.3f|%11.3f|%11.3f|\n",
                 (void *) &LIi,
                 LIi.id,

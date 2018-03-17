@@ -28,7 +28,7 @@ static int parseAddress(uint8_t *address, char *address_str) {
     return 1;
 }
 
-int initDevice(DeviceList *list,unsigned int retry_count, LCorrectionList *lcl, const char *data_path) {
+int initDevice(DeviceList *list, unsigned int retry_count, LCorrectionList *lcl, const char *data_path) {
     TSVresult tsv = TSVRESULT_INITIALIZER;
     TSVresult* r = &tsv;
     if (!TSVinit(r, data_path)) {
@@ -41,7 +41,6 @@ int initDevice(DeviceList *list,unsigned int retry_count, LCorrectionList *lcl, 
         return 1;
     }
     RESIZE_M_LIST(list, n);
-    NULL_LIST(list);
     if (LML != n) {
 #ifdef MODE_DEBUG
         fprintf(stderr, "%s(): failure while resizing list\n", F);
@@ -49,13 +48,14 @@ int initDevice(DeviceList *list,unsigned int retry_count, LCorrectionList *lcl, 
         TSVclear(r);
         return 0;
     }
+    NULL_LIST(list);
     for (int i = 0; i < LML; i++) {
-        LIi.id = LIi.result.id =TSVgetis(r, i, "id");
+        LIi.id = LIi.result.id = TSVgetis(r, i, "id");
         LIi.pin = TSVgetis(r, i, "pin");
         LIi.resolution = TSVgetis(r, i, "resolution");
         int lcorrection_id = TSVgetis(r, i, "lcorrection_id");
         LIi.lcorrection = getLCorrectionById(lcorrection_id, lcl);
-        LIi.retry_count=retry_count;
+        LIi.retry_count = retry_count;
         if (!parseAddress(LIi.addr, TSVgetvalues(r, i, "address"))) {
 #ifdef MODE_DEBUG
             fprintf(stderr, "%s(): bad address where device_id=%d\n", F, LIi.id);

@@ -35,7 +35,7 @@ function move_bin_dbg {
 function move_conf {
 	([ -d $CONF_DIR ] || mkdir $CONF_DIR) && \
 	([ -d $CONF_DIR_APP ] || mkdir $CONF_DIR_APP) && \
-	cp  ./config/config.tsv $CONF_DIR_APP && \
+	cp  ./config/main.tsv $CONF_DIR_APP && \
 	cp  ./config/device.tsv $CONF_DIR_APP && \
 	cp  ./config/lcorrection.tsv $CONF_DIR_APP && \
 	chmod -R a+w $CONF_DIR_APP
