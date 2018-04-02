@@ -19,20 +19,17 @@ void serverRun(int *state, int init_state) {
     SERVER_APP_ACTIONS
     DEF_SERVER_I1LIST
     if (ACP_CMD_IS(ACP_CMD_GET_FTS)) {
-        acp_requestDataToI1List(&request, &i1l); //id
-        if (i1l.length <= 0) {
-            return;
+
+        SERVER_PARSE_I1LIST
+        FORLISTN(i1l, i) {
+            Device *item;
+            LIST_GETBYID(item, &device_list, i1l.item[i]);
+            if (item == NULL) continue;
+            getTemperature(item);
+            if (!catTemperature(item, &response)) return;
         }
-        for (int i = 0; i < i1l.length; i++) {
-            Device *device = getDeviceById(i1l.item[i], &device_list);
-            if (device != NULL) {
-                getTemperature(device);
-                if (!catTemperature(device, &response)) {
-                    return;
-                }
-            }
-        }
-    }
+
+    } 
     acp_responseSend(&response, &peer_client);
 }
 
@@ -61,7 +58,7 @@ int initData() {
         return 0;
     }
 #ifdef CPU_ANY
-    puts("return 1;");
+    puts("skipping hardware initialization");
     return 1;
 #endif
     for (size_t i = 0; i < device_list.length; i++) {

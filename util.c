@@ -1,8 +1,6 @@
 
 #include "main.h"
 
-FUN_LIST_GET_BY_ID(Device)
-
 int deviceIdExists(int id) {
     int i, found;
     found = 0;
@@ -127,7 +125,7 @@ void getTemperature(Device *item) {
             item->result.tm = getCurrentTime();
             item->result.state = 1;
             lcorrect(&item->result.value, item->lcorrection);
-            return;
+            break;
         }
     }
 }
