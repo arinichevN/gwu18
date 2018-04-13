@@ -70,7 +70,6 @@ int initDevice(DeviceList *list, unsigned int retry_count, LCorrectionList *lcl,
     TSVclear(r);
     if (LL != LML) {
 #ifdef MODE_DEBUG
-
         fprintf(stderr, "%s(): failure while reading rows\n", F);
 #endif
         return 0;
