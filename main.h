@@ -32,14 +32,6 @@
 #define CONF_DEVICE_FILE CONF_DIR "device.tsv"
 #define CONF_LCORRECTION_FILE CONF_DIR "lcorrection.tsv"
 
-enum {
-    ON = 1,
-    OFF,
-    DO,
-    INIT,
-    WTIME
-} StateAPP;
-
 typedef struct {
     int id;
     uint8_t addr[DS18B20_SCRATCHPAD_BYTE_NUM];
@@ -59,7 +51,7 @@ extern int readSettings();
 
 extern void serverRun(int *state, int init_state);
 
-extern void initApp();
+extern int initApp();
 
 extern int initData();
 
@@ -68,8 +60,6 @@ extern void freeData();
 extern void freeApp();
 
 extern void exit_nicely();
-
-extern void exit_nicely_e(char *s);
 
 #endif 
 

@@ -33,16 +33,21 @@ void serverRun(int *state, int init_state) {
     acp_responseSend(&response, &peer_client);
 }
 
-void initApp() {
+int initApp() {
     if (!readSettings(&sock_port, &retry_count, CONF_MAIN_FILE)) {
-        exit_nicely_e("initApp: failed to read settings\n");
+        putsde("failed to read settings\n");
+        return 0;
     }
     if (!initServer(&sock_fd, sock_port)) {
-        exit_nicely_e("initApp: failed to initialize socket server\n");
+        putsde("failed to initialize socket server\n");
+        return 0;
     }
     if (!gpioSetup()) {
-        exit_nicely_e("initApp: failed to initialize GPIO\n");
+		freeSocketFd(&sock_fd);
+        putsde("failed to initialize GPIO\n");
+        return 0;
     }
+    return 1;
 }
 
 int initData() {
@@ -61,24 +66,11 @@ int initData() {
     puts("skipping hardware initialization");
     return 1;
 #endif
-    for (size_t i = 0; i < device_list.length; i++) {
-        int found = 0;
-        for (size_t j = 0; j < i; j++) {
-            if (device_list.item[j].pin == device_list.item[i].pin) {
-                found = 1;
-                break;
-            }
-        }
-        if (!found) {//pin mode is not set yet for this pin
-            pinModeOut(device_list.item[i].pin);
-        }
-    }
-    for (size_t i = 0; i < device_list.length; i++) {
-        setResolution(&device_list.item[i], device_list.item[i].resolution);
-    }
-    for (size_t i = 0; i < device_list.length; i++) {
-        getResolution(&device_list.item[i]);
-    }
+    if(!initHardware(&device_list)){
+		FREE_LIST(&device_list);
+        FREE_LIST(&lcorrection_list);
+        return 0;
+	}
     return 1;
 }
 
@@ -93,23 +85,17 @@ void freeApp() {
     gpioFree();
 }
 
-void exit_nicely() {
+void exit_nicely ( ) {
     freeApp();
-    puts("\nBye...");
-    exit(EXIT_SUCCESS);
-}
-
-void exit_nicely_e(char *s) {
-    fprintf(stderr, "%s", s);
-    freeApp();
-    exit(EXIT_FAILURE);
+#ifdef MODE_DEBUG
+    puts ( "\nexiting now..." );
+#endif
+    exit ( EXIT_SUCCESS );
 }
 
 int main(int argc, char** argv) {
     if (geteuid() != 0) {
-#ifdef MODE_DEBUG
-        fprintf(stderr, "%s: root user expected\n", APP_NAME_STR);
-#endif
+        putsde("root user expected\n");
         return (EXIT_FAILURE);
     }
 #ifndef MODE_DEBUG
@@ -117,7 +103,7 @@ int main(int argc, char** argv) {
 #endif
     conSig(&exit_nicely);
     if (mlockall(MCL_CURRENT | MCL_FUTURE) == -1) {
-        perror("main: memory locking failed");
+        perrorl ( "mlockall()" );
     }
 #ifndef MODE_DEBUG
     setPriorityMax(SCHED_FIFO);
@@ -129,7 +115,9 @@ int main(int argc, char** argv) {
 #endif
         switch (app_state) {
             case APP_INIT:
-                initApp();
+                if ( !initApp() ) {
+                  exit( EXIT_FAILURE );
+                }
                 app_state = APP_INIT_DATA;
                 break;
             case APP_INIT_DATA:
@@ -153,7 +141,8 @@ int main(int argc, char** argv) {
                 exit_nicely();
                 break;
             default:
-                exit_nicely_e("main: unknown application state");
+                putsde ( "unknown application state\n" );
+                exit ( EXIT_FAILURE );
                 break;
         }
     }

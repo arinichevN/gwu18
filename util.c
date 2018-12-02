@@ -1,21 +1,7 @@
 
 #include "main.h"
 
-int deviceIdExists(int id) {
-    int i, found;
-    found = 0;
-    for (i = 0; i < device_list.length; i++) {
-        if (id == device_list.item[i].id) {
-            found = 1;
-            break;
-        }
-    }
-    if (!found) {
-        return 0;
-    }
 
-    return 1;
-}
 
 int checkResolution(int res) {
     if (!(res == 9 || res == 10 || res == 11 || res == 12)) {
@@ -54,9 +40,8 @@ int checkDevice(DeviceList *dl) {
 }
 
 int requestResolutionParamValid(I2List *list) {
-    int i;
-    for (i = 0; i < list->length; i++) {
-        if (!checkResolution(list->item[i].p1)) {
+    FORLi {
+        if (!checkResolution(LIi.p1)) {
             return 0;
         }
     }
@@ -78,13 +63,12 @@ int checkIntervalAndNum(int interval, int num) {
 }
 
 void setResolution(Device *item, int resolution) {
-    int i;
     item->resolution_set_state = 0;
     int res = ds18b20_parse_resolution(resolution);
     if (res == -1) {
         return;
     }
-    for (i = 0; i < item->retry_count; i++) {
+    for (int i = 0; i < item->retry_count; i++) {
         if (ds18b20_set_resolution(item->pin, item->addr, res)) {
             item->resolution_set_state = 1;
             return;
@@ -100,9 +84,8 @@ void setResolutionC(Device *item, int resolution) {
 }
 
 void getResolution(Device *item) {
-    int i;
     item->resolution_state = 0;
-    for (i = 0; i < item->retry_count; i++) {
+    for (int i = 0; i < item->retry_count; i++) {
         if (ds18b20_get_resolution(item->pin, item->addr, &item->resolution)) {
             item->resolution_state = 1;
             return;
@@ -138,4 +121,26 @@ int catResolution(Device *item, ACPResponse *response) {
     char q[LINE_SIZE];
     snprintf(q, sizeof q, "%d" ACP_DELIMITER_COLUMN_STR "%d" ACP_DELIMITER_COLUMN_STR "%d" ACP_DELIMITER_ROW_STR, item->id, item->resolution, item->resolution_state);
     return acp_responseStrCat(response, q);
+}
+
+int initHardware(DeviceList *list){
+	FORLi {
+        int found = 0;
+        for (size_t j = 0; j < i; j++) {
+            if (LIj.pin == LIi.pin) {
+                found = 1;
+                break;
+            }
+        }
+        if (!found) {//pin mode is not set yet for this pin
+            pinModeOut(LIi.pin);
+        }
+    }
+    FORLi {
+        setResolution(&LIi, LIi.resolution);
+    }
+    FORLi {
+        getResolution(&LIi);
+    }
+    return 1;
 }
