@@ -87,9 +87,7 @@ void freeApp() {
 
 void exit_nicely ( ) {
     freeApp();
-#ifdef MODE_DEBUG
-    puts ( "\nexiting now..." );
-#endif
+    putsdo ( "\nexiting now...\n" );
     exit ( EXIT_SUCCESS );
 }
 
@@ -116,7 +114,7 @@ int main(int argc, char** argv) {
         switch (app_state) {
             case APP_INIT:
                 if ( !initApp() ) {
-                  exit( EXIT_FAILURE );
+                  return ( EXIT_FAILURE );
                 }
                 app_state = APP_INIT_DATA;
                 break;
@@ -142,8 +140,7 @@ int main(int argc, char** argv) {
                 break;
             default:
                 putsde ( "unknown application state\n" );
-                exit ( EXIT_FAILURE );
-                break;
+                return ( EXIT_FAILURE );
         }
     }
     freeApp();
